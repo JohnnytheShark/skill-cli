@@ -1,5 +1,5 @@
 /**
- * hero.js — Hero Section Component with Install Command Switcher & Metric Badges
+ * hero.js — Hero Section Component with Multi-Platform Install Switcher
  */
 
 export function renderHero(containerId = 'hero-container') {
@@ -7,28 +7,28 @@ export function renderHero(containerId = 'hero-container') {
   if (!container) return;
 
   container.innerHTML = `
-    <section class="hero-section">
+    <section class="hero-section" aria-label="Introduction">
       <div class="container">
         <div class="hero-layout">
           <div class="hero-text">
             <div class="hero-pill">
               <span class="pill-dot"></span>
-              <span>v0.1.0 • High-Performance AI Skill Engine</span>
+              <span>v0.1.0 • Rust AI Skill Engine</span>
             </div>
 
             <h1 class="hero-title">
-              Deterministic Skill Store for <span class="gradient-text">AI Agents</span>
+              The deterministic skill store for <span class="title-accent">AI agents</span>
             </h1>
 
             <p class="hero-subtitle">
-              A high-performance CLI and native <strong>Model Context Protocol (MCP)</strong> server written in Rust. Statically bundled with SQLite FTS5 for sub-millisecond keyword retrieval, two-phase context loading, and zero background daemon overhead.
+              A single statically-linked Rust binary providing an embedded <strong>SQLite FTS5</strong> search engine and native <strong>Model Context Protocol (MCP)</strong> server over standard I/O. Indexes markdown files on disk into token-efficient procedural memory with zero background daemons.
             </p>
 
             <div class="hero-installer-box">
-              <div class="install-tabs">
-                <button class="inst-tab active" data-tab="curl-sh">Linux / macOS</button>
-                <button class="inst-tab" data-tab="powershell">Windows PowerShell</button>
-                <button class="inst-tab" data-tab="cargo">Cargo</button>
+              <div class="install-tabs" role="tablist">
+                <button class="inst-tab active" data-tab="curl-sh" role="tab" aria-selected="true">Linux / macOS</button>
+                <button class="inst-tab" data-tab="powershell" role="tab" aria-selected="false">Windows PowerShell</button>
+                <button class="inst-tab" data-tab="cargo" role="tab" aria-selected="false">Cargo</button>
               </div>
 
               <div class="install-command-wrap">
@@ -36,7 +36,7 @@ export function renderHero(containerId = 'hero-container') {
                   <span class="prompt-sym">$</span>
                   <span id="hero-cmd-text">curl -fsSL https://raw.githubusercontent.com/JohnnytheShark/skill-cli/main/install.sh | bash</span>
                 </div>
-                <button class="copy-btn" id="hero-copy-cmd-btn" title="Copy command to clipboard">
+                <button class="copy-btn" id="hero-copy-cmd-btn" title="Copy command to clipboard" aria-label="Copy installation command">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -53,33 +53,33 @@ export function renderHero(containerId = 'hero-container') {
                   <polyline points="7 10 12 15 17 10"></polyline>
                   <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
-                <span>Download Binary</span>
+                <span>Download Binaries</span>
               </a>
               <a href="#diataxis" class="btn btn-secondary">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                   <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
                 </svg>
-                <span>Explore Diátaxis Docs</span>
+                <span>Read Documentation</span>
               </a>
             </div>
 
             <div class="hero-stats">
               <div class="stat-item">
                 <span class="stat-value">~4 MB</span>
-                <span class="stat-label">Single Binary Size</span>
+                <span class="stat-label">Single Binary</span>
               </div>
               <div class="stat-item">
                 <span class="stat-value">&lt; 1 ms</span>
-                <span class="stat-label">FTS5 BM25 Search</span>
+                <span class="stat-label">FTS5 Search</span>
               </div>
               <div class="stat-item">
                 <span class="stat-value">0 deps</span>
-                <span class="stat-label">Zero External DB/Daemon</span>
+                <span class="stat-label">Zero Daemons</span>
               </div>
               <div class="stat-item">
                 <span class="stat-value">100%</span>
-                <span class="stat-label">MCP 2024-11-05 Spec</span>
+                <span class="stat-label">MCP 2024-11-05</span>
               </div>
             </div>
           </div>
@@ -105,8 +105,12 @@ export function renderHero(containerId = 'hero-container') {
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
+      tabs.forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
       tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
       const key = tab.getAttribute('data-tab');
       if (commands[key] && cmdText) {
         cmdText.textContent = commands[key];
@@ -118,7 +122,7 @@ export function renderHero(containerId = 'hero-container') {
     copyBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(cmdText.textContent);
       if (window.showToast) {
-        window.showToast('Copied installation command to clipboard!');
+        window.showToast('Copied installation command to clipboard');
       }
     });
   }

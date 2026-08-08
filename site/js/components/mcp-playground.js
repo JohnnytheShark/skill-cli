@@ -7,13 +7,13 @@ export function renderMcpPlayground(containerId = 'playground-container') {
   if (!container) return;
 
   container.innerHTML = `
-    <section class="section" id="playground">
+    <section class="section" id="playground" aria-label="Interactive MCP Playground">
       <div class="container">
         <div class="section-header">
           <div class="section-tag">Interactive Sandbox</div>
-          <h2 class="section-title">MCP Protocol <span class="gradient-text">Interactive Playground</span></h2>
+          <h2 class="section-title">MCP Protocol <span class="title-accent">Wire Playground</span></h2>
           <p class="section-desc">
-            Test how AI agents interact with <code>skill-cli</code> in real time. Simulate FTS5 search queries, inspect JSON-RPC 2.0 requests, and preview response payloads.
+            Simulate how AI agents communicate with <code>skill-cli</code> over stdio JSON-RPC 2.0. Test FTS5 queries, inspect request frames, and preview responses.
           </p>
         </div>
 
@@ -29,18 +29,18 @@ export function renderMcpPlayground(containerId = 'playground-container') {
                 <span>Select Tool / Command</span>
               </div>
 
-              <div class="play-tool-select">
-                <button class="tool-chip active" data-tool="skills_search">skills_search</button>
-                <button class="tool-chip" data-tool="skills_fetch">skills_fetch</button>
-                <button class="tool-chip" data-tool="skills_upsert">skills_upsert</button>
-                <button class="tool-chip" data-tool="cli_search">CLI: skill-cli search</button>
+              <div class="play-tool-select" role="tablist">
+                <button class="tool-chip active" data-tool="skills_search" role="tab" aria-selected="true">skills_search</button>
+                <button class="tool-chip" data-tool="skills_fetch" role="tab" aria-selected="false">skills_fetch</button>
+                <button class="tool-chip" data-tool="skills_upsert" role="tab" aria-selected="false">skills_upsert</button>
+                <button class="tool-chip" data-tool="cli_search" role="tab" aria-selected="false">CLI: search</button>
               </div>
 
               <div class="play-input-box" id="play-input-controls">
                 <!-- Injected dynamically based on selected tool -->
               </div>
 
-              <button class="btn btn-primary" id="play-execute-btn">
+              <button class="btn btn-primary" id="play-execute-btn" aria-label="Execute JSON-RPC call">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="5 3 19 12 5 21 5 3"></polygon>
                 </svg>
@@ -60,8 +60,8 @@ export function renderMcpPlayground(containerId = 'playground-container') {
                 <span>Wire Protocol Stream (stdout)</span>
               </div>
 
-              <div class="play-output-box" id="play-output-result">
-                // Click "Execute JSON-RPC Call" to simulate response...
+              <div class="play-output-box" id="play-output-result" role="region" aria-live="polite">
+// Click "Execute JSON-RPC Call" to simulate response...
               </div>
             </div>
           </div>
@@ -78,7 +78,7 @@ const MOCK_SKILLS_DB = [
     id: "git-bisect",
     name: "Git Bisect",
     description: "Use binary search to find the commit that introduced a bug",
-    content: "# Git Bisect\n\nGit bisect uses binary search to pinpoint regressions."
+    content: "# Git Bisect\n\nGit bisect uses binary search to pinpoint regressions in source code."
   },
   {
     id: "rust-error-handling",
@@ -109,31 +109,31 @@ function initPlaygroundLogic(container) {
   function renderToolInputs() {
     if (activeTool === 'skills_search') {
       inputContainer.innerHTML = `
-        <label>Search Query (FTS5):</label>
-        <input type="text" id="p-query" value="error handling" placeholder="Enter keywords e.g. rust, git, async...">
-        <label>Limit (Default: 5):</label>
-        <input type="number" id="p-limit" value="5" min="1" max="20">
+        <label class="play-field-label" for="p-query">Search Query (FTS5 BM25):</label>
+        <input class="play-input" type="text" id="p-query" value="error handling" placeholder="Enter keywords e.g. rust, git, async...">
+        <label class="play-field-label" for="p-limit">Limit (Default: 5):</label>
+        <input class="play-input" type="number" id="p-limit" value="5" min="1" max="20">
       `;
     } else if (activeTool === 'skills_fetch') {
       inputContainer.innerHTML = `
-        <label>Skill ID:</label>
-        <input type="text" id="p-id" value="rust-error-handling" placeholder="Skill slug ID e.g. git-bisect">
+        <label class="play-field-label" for="p-id">Skill ID:</label>
+        <input class="play-input" type="text" id="p-id" value="rust-error-handling" placeholder="Skill ID slug e.g. git-bisect">
       `;
     } else if (activeTool === 'skills_upsert') {
       inputContainer.innerHTML = `
-        <label>ID:</label>
-        <input type="text" id="p-upsert-id" value="sqlite-fts5-guide">
-        <label>Name:</label>
-        <input type="text" id="p-upsert-name" value="SQLite FTS5 Guide">
-        <label>Description:</label>
-        <input type="text" id="p-upsert-desc" value="Full-Text Search configuration and trigger management in SQLite">
-        <label>Markdown Content:</label>
-        <textarea id="p-upsert-content" rows="3"># SQLite FTS5\n\nUse virtual table with content triggers for instant search.</textarea>
+        <label class="play-field-label" for="p-upsert-id">ID Slug:</label>
+        <input class="play-input" type="text" id="p-upsert-id" value="sqlite-fts5-guide">
+        <label class="play-field-label" for="p-upsert-name">Skill Name:</label>
+        <input class="play-input" type="text" id="p-upsert-name" value="SQLite FTS5 Guide">
+        <label class="play-field-label" for="p-upsert-desc">Description:</label>
+        <input class="play-input" type="text" id="p-upsert-desc" value="Full-Text Search configuration and trigger management in SQLite">
+        <label class="play-field-label" for="p-upsert-content">Markdown Body:</label>
+        <textarea class="play-input" id="p-upsert-content" rows="3" style="resize: vertical;"># SQLite FTS5\n\nUse virtual table with content triggers for instant search.</textarea>
       `;
     } else if (activeTool === 'cli_search') {
       inputContainer.innerHTML = `
-        <label>CLI Argument &lt;QUERY&gt;:</label>
-        <input type="text" id="p-cli-query" value="async" placeholder="Query term">
+        <label class="play-field-label" for="p-cli-query">CLI Argument &lt;QUERY&gt;:</label>
+        <input class="play-input" type="text" id="p-cli-query" value="async" placeholder="Query term">
       `;
     }
   }
@@ -142,15 +142,19 @@ function initPlaygroundLogic(container) {
 
   container.querySelectorAll('.tool-chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      container.querySelectorAll('.tool-chip').forEach(c => c.classList.remove('active'));
+      container.querySelectorAll('.tool-chip').forEach(c => {
+        c.classList.remove('active');
+        c.setAttribute('aria-selected', 'false');
+      });
       chip.classList.add('active');
+      chip.setAttribute('aria-selected', 'true');
       activeTool = chip.getAttribute('data-tool');
       renderToolInputs();
     });
   });
 
   executeBtn.addEventListener('click', () => {
-    outputBox.innerHTML = '<span style="color: #94a3b8;">Processing query in SQLite FTS5 engine...</span>';
+    outputBox.innerHTML = '<span style="color: var(--color-taupe);">Executing SQLite FTS5 query...</span>';
 
     setTimeout(() => {
       if (activeTool === 'skills_search') {
@@ -183,7 +187,7 @@ function initPlaygroundLogic(container) {
           id: request.id
         };
 
-        outputBox.innerHTML = `// → JSON-RPC Request to stdin:\n${JSON.stringify(request, null, 2)}\n\n// ← JSON-RPC Response from stdout:\n${JSON.stringify(response, null, 2)}`;
+        outputBox.textContent = `// → stdin (JSON-RPC Request):\n${JSON.stringify(request, null, 2)}\n\n// ← stdout (JSON-RPC Response):\n${JSON.stringify(response, null, 2)}`;
       } else if (activeTool === 'skills_fetch') {
         const id = (document.getElementById('p-id')?.value || '').trim();
         const match = MOCK_SKILLS_DB.find(s => s.id === id);
@@ -218,7 +222,7 @@ function initPlaygroundLogic(container) {
           id: request.id
         };
 
-        outputBox.innerHTML = `// → JSON-RPC Request to stdin:\n${JSON.stringify(request, null, 2)}\n\n// ← JSON-RPC Response from stdout:\n${JSON.stringify(response, null, 2)}`;
+        outputBox.textContent = `// → stdin (JSON-RPC Request):\n${JSON.stringify(request, null, 2)}\n\n// ← stdout (JSON-RPC Response):\n${JSON.stringify(response, null, 2)}`;
       } else if (activeTool === 'skills_upsert') {
         const id = document.getElementById('p-upsert-id')?.value || 'new-skill';
         const name = document.getElementById('p-upsert-name')?.value || 'New Skill';
@@ -248,7 +252,7 @@ function initPlaygroundLogic(container) {
           id: request.id
         };
 
-        outputBox.innerHTML = `// → JSON-RPC Request to stdin:\n${JSON.stringify(request, null, 2)}\n\n// ← JSON-RPC Response from stdout (Triggers fired: skills_ai / skills_au):\n${JSON.stringify(response, null, 2)}`;
+        outputBox.textContent = `// → stdin (JSON-RPC Request):\n${JSON.stringify(request, null, 2)}\n\n// ← stdout (JSON-RPC Response - FTS triggers fired):\n${JSON.stringify(response, null, 2)}`;
       } else if (activeTool === 'cli_search') {
         const query = (document.getElementById('p-cli-query')?.value || '').toLowerCase();
         const matches = MOCK_SKILLS_DB.filter(s => 
@@ -265,6 +269,6 @@ function initPlaygroundLogic(container) {
         }
         outputBox.textContent = out;
       }
-    }, 200);
+    }, 150);
   });
 }

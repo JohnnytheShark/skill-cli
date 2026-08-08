@@ -12,13 +12,13 @@ export function renderDownloads(containerId = 'downloads-container') {
   const currentOS = detectOS();
 
   container.innerHTML = `
-    <section class="section" id="downloads">
+    <section class="section" id="downloads" aria-label="Precompiled Release Binaries">
       <div class="container">
         <div class="section-header">
           <div class="section-tag">Precompiled Binaries</div>
-          <h2 class="section-title">Download <span class="gradient-text">skill-cli</span></h2>
+          <h2 class="section-title">Download <span class="title-accent">skill-cli</span></h2>
           <p class="section-desc">
-            Fast, self-contained, statically linked executables with zero external runtime dependencies.
+            Self-contained, statically linked executables with zero external runtime dependencies or database servers.
           </p>
         </div>
 
@@ -26,7 +26,7 @@ export function renderDownloads(containerId = 'downloads-container') {
           <!-- Linux x86_64 -->
           <div class="release-card ${currentOS === 'linux' ? 'rc-recommended' : ''}">
             <div class="rc-header">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
                 <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
                 <line x1="6" y1="6" x2="6.01" y2="6"></line>
@@ -38,22 +38,22 @@ export function renderDownloads(containerId = 'downloads-container') {
               </div>
             </div>
             <div class="rc-body">
-              <p>Standard Linux distros (Ubuntu, Debian, Fedora, Arch, Alpine, RHEL).</p>
+              <p>Standard Linux distros including Ubuntu, Debian, Fedora, Arch, Alpine, and RHEL.</p>
             </div>
             <div class="rc-links">
               <div class="rc-download-item">
-                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-x86_64-unknown-linux-gnu.tar.gz" class="btn btn-secondary btn-sm">
+                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-x86_64-unknown-linux-gnu.tar.gz" class="btn btn-secondary btn-sm" aria-label="Download GNU Linux tarball">
                   <span>GNU (.tar.gz)</span>
                   <span>↓</span>
                 </a>
-                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-x86_64-unknown-linux-gnu.tar.gz.sha256" target="_blank" class="rc-checksum">sha256</a>
+                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-x86_64-unknown-linux-gnu.tar.gz.sha256" target="_blank" rel="noopener noreferrer" class="rc-checksum" aria-label="View SHA256 checksum">sha256</a>
               </div>
               <div class="rc-download-item">
-                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-x86_64-unknown-linux-musl.tar.gz" class="btn btn-secondary btn-sm">
+                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-x86_64-unknown-linux-musl.tar.gz" class="btn btn-secondary btn-sm" aria-label="Download MUSL Static Linux tarball">
                   <span>MUSL Static (.tar.gz)</span>
                   <span>↓</span>
                 </a>
-                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-x86_64-unknown-linux-musl.tar.gz.sha256" target="_blank" class="rc-checksum">sha256</a>
+                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-x86_64-unknown-linux-musl.tar.gz.sha256" target="_blank" rel="noopener noreferrer" class="rc-checksum" aria-label="View SHA256 checksum">sha256</a>
               </div>
             </div>
           </div>
@@ -61,7 +61,7 @@ export function renderDownloads(containerId = 'downloads-container') {
           <!-- Linux ARM64 -->
           <div class="release-card">
             <div class="rc-header">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                 <polyline points="22,6 12,13 2,6"></polyline>
               </svg>
@@ -71,15 +71,15 @@ export function renderDownloads(containerId = 'downloads-container') {
               </div>
             </div>
             <div class="rc-body">
-              <p>Raspberry Pi 4/5, AWS Graviton, Ampere Altra, ARM servers.</p>
+              <p>Raspberry Pi 4/5, AWS Graviton, Ampere Altra, and ARM64 cloud servers.</p>
             </div>
             <div class="rc-links">
               <div class="rc-download-item">
-                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-aarch64-unknown-linux-gnu.tar.gz" class="btn btn-secondary btn-sm">
+                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-aarch64-unknown-linux-gnu.tar.gz" class="btn btn-secondary btn-sm" aria-label="Download ARM64 Linux tarball">
                   <span>ARM64 (.tar.gz)</span>
                   <span>↓</span>
                 </a>
-                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-aarch64-unknown-linux-gnu.tar.gz.sha256" target="_blank" class="rc-checksum">sha256</a>
+                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-aarch64-unknown-linux-gnu.tar.gz.sha256" target="_blank" rel="noopener noreferrer" class="rc-checksum" aria-label="View SHA256 checksum">sha256</a>
               </div>
             </div>
           </div>
@@ -87,8 +87,10 @@ export function renderDownloads(containerId = 'downloads-container') {
           <!-- macOS Apple Silicon -->
           <div class="release-card ${currentOS === 'mac' ? 'rc-recommended' : ''}">
             <div class="rc-header">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.5a2.5 2.5 0 1 1 2.5-2.5 2.5 2.5 0 0 1-2.5 2.5z"></path>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 8v8"></path>
+                <path d="M8 12h8"></path>
               </svg>
               <div>
                 <h4>macOS Apple Silicon</h4>
@@ -96,15 +98,15 @@ export function renderDownloads(containerId = 'downloads-container') {
               </div>
             </div>
             <div class="rc-body">
-              <p>Native ARM64 build for modern Apple Silicon MacBooks & Macs.</p>
+              <p>Native ARM64 build for modern Apple Silicon Mac computers.</p>
             </div>
             <div class="rc-links">
               <div class="rc-download-item">
-                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-aarch64-apple-darwin.tar.gz" class="btn btn-secondary btn-sm">
+                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-aarch64-apple-darwin.tar.gz" class="btn btn-secondary btn-sm" aria-label="Download macOS Apple Silicon tarball">
                   <span>Apple Silicon (.tar.gz)</span>
                   <span>↓</span>
                 </a>
-                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-aarch64-apple-darwin.tar.gz.sha256" target="_blank" class="rc-checksum">sha256</a>
+                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-aarch64-apple-darwin.tar.gz.sha256" target="_blank" rel="noopener noreferrer" class="rc-checksum" aria-label="View SHA256 checksum">sha256</a>
               </div>
             </div>
           </div>
@@ -112,7 +114,7 @@ export function renderDownloads(containerId = 'downloads-container') {
           <!-- Windows x86_64 -->
           <div class="release-card ${currentOS === 'windows' ? 'rc-recommended' : ''}">
             <div class="rc-header">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="8" height="8"></rect>
                 <rect x="13" y="3" width="8" height="8"></rect>
                 <rect x="3" y="13" width="8" height="8"></rect>
@@ -128,34 +130,34 @@ export function renderDownloads(containerId = 'downloads-container') {
             </div>
             <div class="rc-links">
               <div class="rc-download-item">
-                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-x86_64-pc-windows-msvc.zip" class="btn btn-secondary btn-sm">
+                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-x86_64-pc-windows-msvc.zip" class="btn btn-secondary btn-sm" aria-label="Download Windows zip archive">
                   <span>Windows (.zip)</span>
                   <span>↓</span>
                 </a>
-                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-x86_64-pc-windows-msvc.zip.sha256" target="_blank" class="rc-checksum">sha256</a>
+                <a href="https://github.com/${REPO}/releases/download/${RELEASE_VERSION}/skill-cli-${RELEASE_VERSION}-x86_64-pc-windows-msvc.zip.sha256" target="_blank" rel="noopener noreferrer" class="rc-checksum" aria-label="View SHA256 checksum">sha256</a>
               </div>
             </div>
           </div>
 
-          <!-- Rust Cargo Crates -->
+          <!-- Rust Cargo Source -->
           <div class="release-card">
             <div class="rc-header">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="16 18 22 12 16 6"></polyline>
                 <polyline points="8 6 2 12 8 18"></polyline>
               </svg>
               <div>
                 <h4>Build from Source</h4>
-                <span class="rc-tag">Cargo Install</span>
+                <span class="rc-tag">Cargo Toolchain</span>
               </div>
             </div>
             <div class="rc-body">
-              <p>Install directly from source with the standard Rust toolchain.</p>
+              <p>Compile from source directly using the standard Rust toolchain.</p>
             </div>
             <div class="rc-links">
-              <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('cargo install --git https://github.com/${REPO} skill-cli'); window.showToast && window.showToast('Copied cargo command!');">
+              <button class="btn btn-secondary btn-sm" id="cargo-copy-btn" aria-label="Copy cargo install command">
                 <span>cargo install</span>
-                <span>📋</span>
+                <span>Copy</span>
               </button>
             </div>
           </div>
@@ -163,6 +165,16 @@ export function renderDownloads(containerId = 'downloads-container') {
       </div>
     </section>
   `;
+
+  const cargoCopyBtn = container.querySelector('#cargo-copy-btn');
+  if (cargoCopyBtn) {
+    cargoCopyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(`cargo install --git https://github.com/${REPO} skill-cli`);
+      if (window.showToast) {
+        window.showToast('Copied cargo install command to clipboard');
+      }
+    });
+  }
 }
 
 function detectOS() {

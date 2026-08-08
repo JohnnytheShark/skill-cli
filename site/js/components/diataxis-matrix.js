@@ -1,5 +1,5 @@
 /**
- * diataxis-matrix.js — Diataxis 4-Quadrant Matrix Component
+ * diataxis-matrix.js — Diataxis 4-Quadrant Matrix Component (Earthy / Tactile)
  */
 
 import { DOCS_CATEGORIES } from '../data/docs-index.js';
@@ -9,11 +9,11 @@ export function renderDiataxisMatrix(containerId = 'diataxis-matrix-container', 
   if (!container) return;
 
   container.innerHTML = `
-    <div class="diataxis-quadrant-grid">
+    <div class="diataxis-quadrant-grid" role="region" aria-label="Diataxis Documentation Pillars">
       ${DOCS_CATEGORIES.map(cat => {
         const quadrantClass = `q-${cat.id}`;
         return `
-          <div class="quadrant-card ${quadrantClass}" data-primary="${cat.primaryDoc}">
+          <div class="quadrant-card ${quadrantClass}" data-primary="${cat.primaryDoc}" tabindex="0" role="button" aria-label="${cat.name}: ${cat.desc}">
             <div class="q-header">
               <span class="q-badge">${cat.badge}</span>
               <span class="q-axis">${cat.axis}</span>
@@ -40,10 +40,9 @@ export function renderDiataxisMatrix(containerId = 'diataxis-matrix-container', 
     </div>
   `;
 
-  // Attach card click handlers to load docs
+  // Attach card click & keyboard handlers to load docs
   container.querySelectorAll('.quadrant-card').forEach(card => {
-    card.addEventListener('click', (e) => {
-      // If clicked on an a tag, let the a tag handler or hash handle it
+    const handleSelect = (e) => {
       if (e.target.closest('a')) return;
       const primary = card.getAttribute('data-primary');
       if (primary && onSelectDoc) {
@@ -52,6 +51,14 @@ export function renderDiataxisMatrix(containerId = 'diataxis-matrix-container', 
         if (viewerEl) {
           viewerEl.scrollIntoView({ behavior: 'smooth' });
         }
+      }
+    };
+
+    card.addEventListener('click', handleSelect);
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        handleSelect(e);
       }
     });
   });

@@ -2,6 +2,7 @@
  * app.js — Main Application Coordinator and Component Bootstrapper
  */
 
+import './utils/toast.js';
 import { renderNavbar } from './components/navbar.js';
 import { renderHero } from './components/hero.js';
 import { renderTerminalDemo } from './components/terminal-demo.js';

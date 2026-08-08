@@ -1,83 +1,86 @@
 /**
- * tokens.css — Design Tokens, Theme Variables & Reset
+ * tokens.css — Earthy, Organic Design Tokens for skill-cli
+ * 
+ * Strict 5-Color Palette:
+ * 1. #12130F — Near-black, ink (Primary Canvas & Dark Surfaces)
+ * 2. #5B9279 — Muted Sage Green (Structural Badges & Secondary Accents)
+ * 3. #8FCB9B — Soft Leaf Green (Primary Interactive & Highlights)
+ * 4. #EAE6E5 — Warm Off-White (Primary Typography & Light Elements)
+ * 5. #8F8073 — Warm Taupe / Bark (Structural Dividers, Borders & Muted Text)
  */
 
 :root {
-  /* Color Palette — Cyber Emerald & Electric Cyan Theme */
-  --bg-base: #080c14;
-  --bg-surface: #0e1626;
-  --bg-surface-raised: #141f36;
-  --bg-surface-hover: #1c2b4a;
-  --bg-surface-glass: rgba(14, 22, 38, 0.75);
-  --bg-card: rgba(18, 29, 50, 0.65);
-  --bg-card-hover: rgba(26, 42, 72, 0.75);
+  /* Strict 5-Color Core Tokens */
+  --color-ink: #12130F;
+  --color-sage: #5B9279;
+  --color-leaf: #8FCB9B;
+  --color-offwhite: #EAE6E5;
+  --color-taupe: #8F8073;
 
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-medium: rgba(255, 255, 255, 0.15);
-  --border-accent: rgba(16, 185, 129, 0.35);
-  --border-accent-cyan: rgba(6, 182, 212, 0.35);
+  /* Surface & Background Hierarchies */
+  --bg-canvas: #12130F;
+  --bg-surface: #181914;
+  --bg-surface-raised: #1f211b;
+  --bg-surface-hover: #262822;
+  --bg-surface-glass: rgba(18, 19, 15, 0.88);
+  --bg-card: #161713;
+  --bg-card-hover: #1c1e18;
+  --bg-code: #0e0f0c;
 
-  --text-main: #f1f5f9;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
-  --text-inverse: #080c14;
+  /* Border & Divider System */
+  --border-subtle: rgba(143, 128, 115, 0.25);
+  --border-medium: rgba(143, 128, 115, 0.45);
+  --border-strong: #8F8073;
+  --border-sage: #5B9279;
+  --border-leaf: #8FCB9B;
+  --border-accent: rgba(91, 146, 121, 0.5);
 
-  /* Accent Colors */
-  --accent-emerald: #10b981;
-  --accent-emerald-light: #34d399;
-  --accent-emerald-dark: #059669;
-  --accent-emerald-glow: rgba(16, 185, 129, 0.22);
+  /* Typography Colors */
+  --text-main: #EAE6E5;
+  --text-muted: #8F8073;
+  --text-dim: rgba(143, 128, 115, 0.75);
+  --text-accent: #8FCB9B;
+  --text-sage: #5B9279;
+  --text-inverse: #12130F;
 
-  --accent-cyan: #06b6d4;
-  --accent-cyan-light: #22d3ee;
-  --accent-cyan-glow: rgba(6, 182, 212, 0.22);
+  /* Diataxis Pillar Theming (Unified Earthy Palette) */
+  --q-tutorials-border: #5B9279;
+  --q-tutorials-bg: rgba(91, 146, 121, 0.08);
+  --q-howto-border: #8FCB9B;
+  --q-howto-bg: rgba(143, 203, 155, 0.08);
+  --q-reference-border: #8F8073;
+  --q-reference-bg: rgba(143, 128, 115, 0.08);
+  --q-explanation-border: rgba(91, 146, 121, 0.6);
+  --q-explanation-bg: rgba(18, 19, 15, 0.95);
 
-  --accent-violet: #8b5cf6;
-  --accent-violet-glow: rgba(139, 92, 246, 0.2);
-
-  --accent-amber: #f59e0b;
-  --accent-amber-glow: rgba(245, 158, 11, 0.2);
-
-  --accent-rose: #f43f5e;
-
-  /* Quadrant Specific Colors */
-  --q-tutorials: #3b82f6;
-  --q-tutorials-glow: rgba(59, 130, 246, 0.15);
-  --q-howto: #10b981;
-  --q-howto-glow: rgba(16, 185, 129, 0.15);
-  --q-reference: #f59e0b;
-  --q-reference-glow: rgba(245, 158, 11, 0.15);
-  --q-explanation: #a855f7;
-  --q-explanation-glow: rgba(168, 85, 247, 0.15);
-
-  /* Typography */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Plus Jakarta Sans', var(--font-sans);
+  /* Typography Font Stacks */
+  --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Layout & Geometry */
-  --max-width: 1240px;
-  --header-height: 72px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --max-width: 1200px;
+  --header-height: 68px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
   --radius-pill: 9999px;
 
-  /* Elevation Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
-  --shadow-glow-emerald: 0 0 35px var(--accent-emerald-glow);
-  --shadow-glow-cyan: 0 0 35px var(--accent-cyan-glow);
+  /* Shadows (Tactile & Deep, No Glow Blobs) */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+  --shadow-inset: inset 0 1px 0 rgba(234, 230, 229, 0.06);
 
-  /* Transitions */
-  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Focus Indicator for Accessible Keyboard Navigation */
+  --focus-ring: 0 0 0 2px #12130F, 0 0 0 4px #8FCB9B;
+
+  /* Motion & Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
 }
 
-/* Base Reset */
+/* Global Reset */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -85,11 +88,11 @@
 }
 
 html {
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.6;
   color: var(--text-main);
-  background-color: var(--bg-base);
+  background-color: var(--bg-canvas);
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -99,7 +102,8 @@ body {
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
-  background-color: var(--bg-base);
+  background-color: var(--bg-canvas);
+  color: var(--text-main);
 }
 
 a {
@@ -118,8 +122,14 @@ code, pre, kbd {
   font-family: var(--font-mono);
 }
 
-/* Background Glow Mesh */
-.bg-glow-mesh {
+/* Universal Visible Keyboard Focus */
+:focus-visible {
+  outline: 2px solid var(--color-leaf);
+  outline-offset: 2px;
+}
+
+/* Tactile Organic Background Substrate */
+.bg-substrate {
   position: fixed;
   top: 0;
   left: 0;
@@ -127,14 +137,14 @@ code, pre, kbd {
   bottom: 0;
   z-index: -1;
   pointer-events: none;
-  background:
-    radial-gradient(circle at 15% 15%, rgba(16, 185, 129, 0.08) 0%, transparent 45%),
-    radial-gradient(circle at 85% 20%, rgba(6, 182, 212, 0.07) 0%, transparent 40%),
-    radial-gradient(circle at 50% 60%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 85%, rgba(16, 185, 129, 0.06) 0%, transparent 45%);
+  background-color: #12130F;
+  background-image: 
+    radial-gradient(ellipse at 20% 0%, rgba(91, 146, 121, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 100%, rgba(143, 128, 115, 0.06) 0%, transparent 60%);
 }
 
-.bg-grid-overlay {
+/* Subtle Organic Grid Texture */
+.bg-grid-substrate {
   position: fixed;
   top: 0;
   left: 0;
@@ -143,7 +153,17 @@ code, pre, kbd {
   z-index: -1;
   pointer-events: none;
   background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-  background-size: 40px 40px;
+    linear-gradient(to right, rgba(143, 128, 115, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(143, 128, 115, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
