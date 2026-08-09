@@ -14,6 +14,11 @@
 
 ## Option A: Antigravity / Claude Desktop (`mcp_config.json`)
 
+**Config file locations:**
+- **Antigravity (global):** `~/.gemini/config/mcp_config.json`
+- **Claude Desktop (macOS):** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Claude Desktop (Windows):** `%APPDATA%\Claude\claude_desktop_config.json`
+
 Add an entry to your MCP configuration file:
 
 ```json
@@ -21,16 +26,25 @@ Add an entry to your MCP configuration file:
   "mcpServers": {
     "skill-engine": {
       "command": "skill-cli",
-      "args": ["serve"],
-      "env": {}
+      "args": ["serve"]
     }
   }
 }
 ```
 
-> **Tip:** If `skill-cli` is not on your `PATH`, replace `"skill-cli"` with the full absolute path to the binary, e.g. `"C:\\Users\\you\\skill-cli\\target\\release\\skill-cli.exe"`.
+> **Windows users:** If `skill-cli` isn't found (e.g. you haven't restarted your terminal since installing), use the full installer path:
+> ```json
+> "command": "C:\\Users\\<YourName>\\.skill-cli\\bin\\skill-cli.exe"
+> ```
+> You can confirm the binary exists by running:
+> `& "$HOME\.skill-cli\bin\skill-cli.exe" --version`
 
-After saving, restart your agent/IDE. The tools `skills_search`, `skills_fetch`, and `skills_upsert` will appear in the tools list.
+> **macOS / Linux users:** If `skill-cli` isn't found, use:
+> ```json
+> "command": "/Users/<YourName>/.skill-cli/bin/skill-cli"
+> ```
+
+After saving, restart your agent/IDE. The tools `skills_search`, `skills_fetch`, `skills_upsert`, `skills_delete`, `skills_delete_bulk`, and `skills_export` will appear in the tools list.
 
 ---
 

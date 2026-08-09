@@ -19,21 +19,32 @@ This documentation follows the [Diátaxis framework](https://diataxis.fr/), orga
 
 ## Quick Start
 
-```bash
-# Build the binary
-cargo build --release
+**Install (one command, no Rust required):**
 
-# Import skills from a directory of SKILL.md files
-./target/release/skill-cli sync --dir ./my-skills
+```powershell
+# Windows PowerShell
+irm https://raw.githubusercontent.com/JohnnytheShark/skill-cli/main/install.ps1 | iex
+```
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/JohnnytheShark/skill-cli/main/install.sh | bash
+```
+
+**Then:**
+
+```bash
+# Import skills from a directory of .md files
+skill-cli sync --dir ./my-skills
 
 # Search for a skill
-./target/release/skill-cli search "rust async"
+skill-cli search "rust async"
 
 # List all indexed skills
-./target/release/skill-cli list
+skill-cli list
 
 # Start the MCP server over stdio
-./target/release/skill-cli serve
+skill-cli serve
 ```
 
 ## Project Layout

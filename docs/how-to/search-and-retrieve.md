@@ -19,6 +19,8 @@ Prints matching skills in the format:
 - <id> (<name>): <description>
 ```
 
+> **Note:** The query must be a non-empty string. An empty query (`""`) will return a database error. To browse all skills without filtering, use `skill-cli list`.
+
 ### List all skills
 
 ```bash

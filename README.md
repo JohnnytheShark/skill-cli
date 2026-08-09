@@ -23,12 +23,28 @@
 
 ### Install
 
-```bash
-git clone <repo-url>
-cd skill-cli
-cargo build --release
-# Binary is now at ./target/release/skill-cli
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/JohnnytheShark/skill-cli/main/install.ps1 | iex
 ```
+
+**macOS / Linux:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/JohnnytheShark/skill-cli/main/install.sh | bash
+```
+
+The binary is installed to `~/.skill-cli/bin/` and added to your `PATH` automatically. **Restart your terminal** after installing, then verify:
+
+```bash
+skill-cli --version
+```
+
+> **Build from Source (advanced):** Requires the [Rust toolchain](https://rustup.rs/).
+> ```bash
+> git clone https://github.com/JohnnytheShark/skill-cli.git
+> cd skill-cli
+> cargo build --release
+> ```
 
 ### Sync skills from a directory
 

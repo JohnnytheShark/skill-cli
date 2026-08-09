@@ -23,6 +23,8 @@ export const HOWTO_DATA = {
 | [Search and Retrieve Skills](./search-and-retrieve.md) | Query skills from CLI or via MCP tools (\`skills_search\`, \`skills_fetch\`) |
 | [Upsert a Skill via MCP](./upsert-skill-via-mcp.md) | Programmatically persist new procedural knowledge from an agent at runtime |
 | [Connect an AI Agent via MCP](./connect-ai-agent.md) | Configure Claude Desktop, Antigravity, or custom Python agents |
+| [Find the Database Path](./custom-db-path.md) | Locate \`skills.db\` on your platform and back it up |
+| [Troubleshooting](./troubleshooting.md) | Fix common errors: command not found, database errors, MCP connection issues |
 
 ---
 
@@ -146,6 +148,8 @@ Prints matching skills in the format:
 \`\`\`text
 - <id> (<name>): <description>
 \`\`\`
+
+> **Note:** The query must be a non-empty string. An empty query (\`""\`) will return a database error. To browse all skills without filtering, use \`skill-cli list\`.
 
 ### List all skills
 
@@ -328,6 +332,11 @@ If you prefer not to use MCP, the same operation can be triggered during a \`syn
 
 ## Option A: Antigravity / Claude Desktop (\`mcp_config.json\`)
 
+**Config file locations:**
+- **Antigravity (global):** \`~/.gemini/config/mcp_config.json\`
+- **Claude Desktop (macOS):** \`~/Library/Application Support/Claude/claude_desktop_config.json\`
+- **Claude Desktop (Windows):** \`%APPDATA%\\Claude\\claude_desktop_config.json\`
+
 Add an entry to your MCP configuration file:
 
 \`\`\`json
@@ -335,16 +344,24 @@ Add an entry to your MCP configuration file:
   "mcpServers": {
     "skill-engine": {
       "command": "skill-cli",
-      "args": ["serve"],
-      "env": {}
+      "args": ["serve"]
     }
   }
 }
 \`\`\`
 
-> **Tip:** If \`skill-cli\` is not on your \`PATH\`, replace \`"skill-cli"\` with the full absolute path to the binary, e.g. \`"C:\\\\Users\\\\you\\\\skill-cli\\\\target\\\\release\\\\skill-cli.exe"\`.
+> **Windows users:** If \`skill-cli\` isn't found (e.g. you haven't restarted your terminal since installing), use the full installer path:
+> \`\`\`json
+> "command": "C:\\\\Users\\\\<YourName>\\\\.skill-cli\\\\bin\\\\skill-cli.exe"
+> \`\`\`
+> Confirm the binary exists: \`& "$HOME\\.skill-cli\\bin\\skill-cli.exe" --version\`
 
-After saving, restart your agent/IDE. The tools \`skills_search\`, \`skills_fetch\`, and \`skills_upsert\` will appear in the tools list.
+> **macOS / Linux users:** If \`skill-cli\` isn't found, use:
+> \`\`\`json
+> "command": "/Users/<YourName>/.skill-cli/bin/skill-cli"
+> \`\`\`
+
+After saving, restart your agent/IDE. The tools \`skills_search\`, \`skills_fetch\`, \`skills_upsert\`, \`skills_delete\`, \`skills_delete_bulk\`, and \`skills_export\` will appear in the tools list.
 
 ---
 
@@ -353,17 +370,8 @@ After saving, restart your agent/IDE. The tools \`skills_search\`, \`skills_fetc
 You can speak the MCP protocol directly:
 
 \`\`\`bash
-# Start the server in the background
-skill-cli serve &
-SERVER_PID=$!
-
-# Send an initialize message
 echo '{"jsonrpc":"2.0","method":"initialize","params":{},"id":1}' | skill-cli serve
-
-# List available tools
 echo '{"jsonrpc":"2.0","method":"tools/list","params":{},"id":2}' | skill-cli serve
-
-kill $SERVER_PID
 \`\`\`
 
 ---
@@ -403,6 +411,170 @@ print(result)
 Once connected, ask your agent:
 > *"Search my skill engine for anything related to git."*
 
-The agent should invoke \`skills_search\`, receive metadata, then optionally call \`skills_fetch\` to retrieve the full Markdown content and inject it into its context.`
+The agent should invoke \`skills_search\`, receive metadata, then optionally call \`skills_fetch\` to retrieve the full Markdown content and inject it into its context.
+
+---
+
+## Troubleshooting
+
+If the MCP server isn't connecting, see the [Troubleshooting Guide](./troubleshooting.md).`
+  },
+
+  "how-to/troubleshooting.md": {
+    title: "Troubleshooting",
+    category: "How-to Guides",
+    badge: "🛠️ PROBLEM-ORIENTED",
+    content: `# How-to: Troubleshooting
+
+> **Type:** How-to — *Task-oriented*
+>
+> **Goal:** Diagnose and fix the most common problems encountered when installing and using \`skill-cli\`.
+
+---
+
+## \`skill-cli: command not found\` after installing
+
+**Cause:** The installer added \`~/.skill-cli/bin\` to your user \`PATH\`, but the current terminal session loaded the old \`PATH\` before the change was made.
+
+**Fix:** Close and reopen your terminal, then try again.
+
+If the issue persists, verify the path was added:
+
+\`\`\`powershell
+# Windows PowerShell
+[Environment]::GetEnvironmentVariable("Path", "User")
+# Should include: C:\Users\<YourName>\.skill-cli\bin
+\`\`\`
+
+\`\`\`bash
+# macOS / Linux
+echo $PATH
+# Should include: ~/.skill-cli/bin
+\`\`\`
+
+---
+
+## \`Database error during search\` with an empty query
+
+**Cause:** FTS5 requires a non-empty keyword string. An empty query (\`""\`) is invalid.
+
+**Fix:** Use a keyword, or \`skill-cli list\` to see all skills:
+
+\`\`\`bash
+# Wrong — will error
+skill-cli search ""
+
+# Correct
+skill-cli list
+skill-cli search "git"
+\`\`\`
+
+The same rule applies to the \`skills_search\` MCP tool — always pass a non-empty \`query\` string.
+
+---
+
+## MCP server not connecting (wrong binary path)
+
+**Cause:** The \`command\` in \`mcp_config.json\` points to a binary that can't be found.
+
+**Fix:** Use the full absolute path to the binary.
+
+| Platform | Installer path |
+|---|---|
+| **Windows** | \`C:\\Users\\<YourName>\\.skill-cli\\bin\\skill-cli.exe\` |
+| **macOS** | \`/Users/<YourName>/.skill-cli/bin/skill-cli\` |
+| **Linux** | \`/home/<YourName>/.skill-cli/bin/skill-cli\` |
+
+Verify the binary first:
+
+\`\`\`powershell
+# Windows
+& "$HOME\.skill-cli\bin\skill-cli.exe" --version
+\`\`\`
+
+\`\`\`bash
+# macOS / Linux
+~/.skill-cli/bin/skill-cli --version
+\`\`\`
+
+Then restart your agent or IDE.
+
+---
+
+## Skills not appearing after \`sync\`
+
+1. Confirm the directory path and that it contains \`.md\` files
+2. Run sync again with the absolute path: \`skill-cli sync --dir /absolute/path/to/skills\`
+3. Verify import: \`skill-cli list\`
+4. Files without frontmatter are still imported — \`name\` defaults to the filename and \`description\` is empty
+
+---
+
+## \`install.ps1\` fails with execution policy error on Windows
+
+\`\`\`powershell
+# Run in an Administrator PowerShell window
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+
+# Or bypass just for the installer
+powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/JohnnytheShark/skill-cli/main/install.ps1 | iex"
+\`\`\`
+
+---
+
+## Still stuck?
+
+Open an issue on [GitHub](https://github.com/JohnnytheShark/skill-cli/issues) with your OS version, the exact command you ran, and the full error output.`
+  },
+
+  "how-to/custom-db-path.md": {
+    title: "Find the Database Path",
+    category: "How-to Guides",
+    badge: "🛠️ PROBLEM-ORIENTED",
+    content: `# How-to: Find and Locate the skills.db Database
+
+> **Type:** How-to — *Task-oriented*
+>
+> **Goal:** Understand where \`skill-cli\` stores its database and what the default path is on each platform.
+
+---
+
+## Default Database Location
+
+| Platform | Default Path |
+|---|---|
+| **Windows** | \`%APPDATA%\\skills\\skills.db\` |
+| **macOS** | \`~/Library/Application Support/skills/skills.db\` |
+| **Linux** | \`~/.config/skills/skills.db\` |
+
+The directory is created automatically on first run.
+
+---
+
+## There is no custom path flag
+
+\`skill-cli\` is intentionally zero-config — there is no \`--db\` flag or environment variable to change the database path. To migrate skills between instances, use \`export\` and \`sync\`:
+
+\`\`\`bash
+# Export all skills to .md files
+skill-cli export --dir ./exported-skills
+
+# On another machine, sync them in
+skill-cli sync --dir ./exported-skills
+\`\`\`
+
+---
+
+## Backing up the database
+
+\`\`\`powershell
+# Windows
+Copy-Item "$env:APPDATA\skills\skills.db" "$env:APPDATA\skills\skills.db.bak"
+\`\`\`
+
+\`\`\`bash
+# macOS / Linux
+cp ~/.config/skills/skills.db ~/.config/skills/skills.db.bak
+\`\`\``
   }
 };

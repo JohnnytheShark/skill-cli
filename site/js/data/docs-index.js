@@ -36,7 +36,9 @@ export const DOCS_CATEGORIES = [
       "how-to/sync-skills-directory.md",
       "how-to/search-and-retrieve.md",
       "how-to/upsert-skill-via-mcp.md",
-      "how-to/connect-ai-agent.md"
+      "how-to/connect-ai-agent.md",
+      "how-to/troubleshooting.md",
+      "how-to/custom-db-path.md"
     ]
   },
   {
