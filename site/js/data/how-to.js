@@ -55,7 +55,7 @@ How-to guides assume you already have \`skill-cli\` installed and understand bas
 ## The \`sync\` Command
 
 \`\`\`bash
-skill-cli sync --dir <PATH>
+skill-cli sync --type <TYPE> --dir <PATH>
 \`\`\`
 
 \`<PATH>\` must be a directory. \`skill-cli\` will walk it non-recursively and process every \`.md\` file found.
@@ -91,7 +91,7 @@ Full Markdown instructions for the LLM/agent.
 #   rust-lifetimes.md
 #   git-bisect.md
 
-skill-cli sync --dir ./skills
+skill-cli sync --type skill --dir ./skills
 \`\`\`
 
 Output:
@@ -99,7 +99,7 @@ Output:
 Imported skill: python-dataclasses
 Imported skill: rust-lifetimes
 Imported skill: git-bisect
-Successfully synced 3 skills.
+Successfully synced 3 skill(s).
 \`\`\`
 
 ---
@@ -116,7 +116,7 @@ Successfully synced 3 skills.
 cat > .git/hooks/pre-commit << 'EOF'
 #!/usr/bin/env bash
 set -e
-skill-cli sync --dir ./skills
+skill-cli sync --type skill --dir ./skills
 EOF
 chmod +x .git/hooks/pre-commit
 \`\`\`

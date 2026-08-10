@@ -35,13 +35,19 @@ curl -fsSL https://raw.githubusercontent.com/JohnnytheShark/skill-cli/main/insta
 
 ```bash
 # Import skills from a directory of .md files
-skill-cli sync --dir ./my-skills
+skill-cli sync --type skill --dir ./my-skills
+
+# Import agents from a directory of .md files
+skill-cli sync --type agent --dir ./my-agents
 
 # Search for a skill
-skill-cli search "rust async"
+skill-cli search --type skill "rust async"
 
-# List all indexed skills
-skill-cli list
+# List all indexed agents
+skill-cli list --type agent
+
+# View usage metrics
+skill-cli metrics
 
 # Start the MCP server over stdio
 skill-cli serve

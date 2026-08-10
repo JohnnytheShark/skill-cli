@@ -38,36 +38,38 @@ skill-cli serve
 
 ## `sync`
 
-Scans a directory of `.md` files and upserts each into the database.
+Scans a directory of `.md` files and upserts each into the database as the specified item type.
 
 ```
-skill-cli sync --dir <PATH> [--prune]
+skill-cli sync --type <TYPE> --dir <PATH> [--prune]
 ```
 
 | Flag | Required | Description |
 |---|---|---|
-| `--dir <PATH>` / `-d <PATH>` | ✅ | Path to the directory containing `.md` skill files |
-| `--prune` | ❌ | Remove skills from the database if their `.md` file is no longer in `<PATH>` |
+| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type to sync (`skill` or `agent`) |
+| `--dir <PATH>` / `-d <PATH>` | ✅ | Path to the directory containing `.md` files |
+| `--prune` | ❌ | Remove items from the database if their `.md` file is no longer in `<PATH>` |
 
 **Behaviour:**
 - Walks the directory non-recursively, skipping symlinks and files larger than 1 MiB.
 - Parses YAML frontmatter (`name`, `description`) and uses the body as `content`.
-- The file stem (filename without `.md`) is used as the skill `id`.
+- The file stem (filename without `.md`) is used as the item `id`.
 - Performs an upsert — safe to run multiple times.
-- If `--prune` is supplied, any database skill not found in the scanned directory is removed.
+- If `--prune` is supplied, any database item of the matching type not found in the scanned directory is removed.
 
 ---
 
 ## `search`
 
-Performs a full-text search and prints matching skills to stdout.
+Performs a full-text search and prints matching items to stdout.
 
 ```
-skill-cli search <QUERY>
+skill-cli search --type <TYPE> <QUERY>
 ```
 
-| Argument | Required | Description |
+| Argument/Flag | Required | Description |
 |---|---|---|
+| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type to search (`skill` or `agent`) |
 | `<QUERY>` | ✅ | Keyword or phrase to search. Supports FTS5 query syntax. |
 
 **Output format:**
@@ -81,15 +83,15 @@ Results are ordered by BM25 relevance score.
 
 ## `list`
 
-Lists all skills currently indexed in the database.
+Lists all items of a specified type currently indexed in the database.
 
 ```
-skill-cli list
+skill-cli list --type <TYPE>
 ```
 
-| Flag | Default | Description |
+| Flag | Required | Description |
 |---|---|---|
-| *(none)* | — | No flags. |
+| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type to list (`skill` or `agent`) |
 
 **Output format:**
 ```
@@ -100,60 +102,74 @@ skill-cli list
 
 ## `remove`
 
-Deletes a single skill by ID.
+Deletes a single item by ID and type.
 
 ```
-skill-cli remove <ID>
+skill-cli remove --type <TYPE> <ID>
 ```
 
-| Argument | Required | Description |
+| Argument/Flag | Required | Description |
 |---|---|---|
-| `<ID>` | ✅ | The skill ID to delete |
+| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type (`skill` or `agent`) |
+| `<ID>` | ✅ | The item ID to delete |
 
 ---
 
 ## `remove-bulk`
 
-Deletes multiple skills in one command.
+Deletes multiple items in one command.
 
 ```
-skill-cli remove-bulk <ID1> <ID2> ...
+skill-cli remove-bulk --type <TYPE> <ID1> <ID2> ...
 ```
 
-| Argument | Required | Description |
+| Argument/Flag | Required | Description |
 |---|---|---|
-| `<IDS...>` | ✅ | One or more skill IDs separated by spaces |
+| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type (`skill` or `agent`) |
+| `<IDS...>` | ✅ | One or more item IDs separated by spaces |
 
 ---
 
 ## `purge`
 
-Permanently deletes ALL skills from the database and rebuilds the FTS index.
+Permanently deletes ALL items of the specified type from the database and rebuilds the FTS index.
 
 ```
-skill-cli purge --yes
+skill-cli purge --type <TYPE> --yes
 ```
 
 | Flag | Required | Description |
 |---|---|---|
+| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type (`skill` or `agent`) |
 | `--yes` | ✅ | Required safety confirmation flag |
 
 ---
 
 ## `export`
 
-Exports skills to `.md` files formatted with YAML frontmatter, ready to be shared or synced into another instance.
+Exports items to `.md` files formatted with YAML frontmatter, ready to be shared or synced into another instance.
 
 ```
-skill-cli export --dir <PATH> [--ids <ID1> <ID2>...] [--query <QUERY>] [--limit <N>]
+skill-cli export --type <TYPE> --dir <PATH> [--ids <ID1> <ID2>...] [--query <QUERY>] [--limit <N>]
 ```
 
 | Flag | Required | Description |
 |---|---|---|
+| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type to export (`skill` or `agent`) |
 | `--dir <PATH>` / `-d <PATH>` | ✅ | Output directory (created automatically if needed) |
-| `--ids <ID...>` | ❌ | Export only specific skill IDs (space-separated) |
-| `--query <QUERY>` | ❌ | Export only skills matching an FTS search query |
-| `--limit <N>` | ❌ | Maximum skills to export when using `--query` (default: `200`) |
+| `--ids <ID...>` | ❌ | Export only specific item IDs (space-separated) |
+| `--query <QUERY>` | ❌ | Export only items matching an FTS search query |
+| `--limit <N>` | ❌ | Maximum items to export when using `--query` (default: `200`) |
+
+---
+
+## `metrics`
+
+Displays the fact that metrics are being tracked. For analytics, run SQL queries on the `usage_logs` database table.
+
+```
+skill-cli metrics
+```
 
 ---
 
