@@ -304,10 +304,10 @@ fn handle_request(pool: &DbPool, req: RpcRequest) -> Option<String> {
 }
 
 fn handle_tool_call(pool: &DbPool, id: Option<Value>, name: &str, args: Value) -> String {
-    let (item_type, action) = if name.starts_with("skills_") {
-        (Some(ItemType::Skill), &name["skills_".len()..])
-    } else if name.starts_with("agents_") {
-        (Some(ItemType::Agent), &name["agents_".len()..])
+    let (item_type, action) = if let Some(stripped) = name.strip_prefix("skills_") {
+        (Some(ItemType::Skill), stripped)
+    } else if let Some(stripped) = name.strip_prefix("agents_") {
+        (Some(ItemType::Agent), stripped)
     } else {
         (None, name)
     };
