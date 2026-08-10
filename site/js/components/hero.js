@@ -13,7 +13,7 @@ export function renderHero(containerId = 'hero-container') {
           <div class="hero-text">
             <div class="hero-pill">
               <span class="pill-dot"></span>
-              <span>v0.1.0 • Rust AI Skill Engine</span>
+              <span>v0.2.0 • Rust AI Skill Engine</span>
             </div>
 
             <h1 class="hero-title">
