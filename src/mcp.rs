@@ -319,14 +319,14 @@ fn handle_tool_call(pool: &DbPool, id: Option<Value>, name: &str, args: Value) -
     if name == "log_usage" {
         let item_id = args.get("id").and_then(|i| i.as_str());
         let item_type_str = args.get("type").and_then(|t| t.as_str());
-        
+
         if let (Some(id_str), Some(type_str)) = (item_id, item_type_str) {
             let parsed_type = match type_str {
                 "skill" => Some(ItemType::Skill),
                 "agent" => Some(ItemType::Agent),
                 _ => None,
             };
-            
+
             if let Some(t) = parsed_type {
                 match db::log_usage(pool, id_str, t) {
                     Ok(_) => {
@@ -339,14 +339,24 @@ fn handle_tool_call(pool: &DbPool, id: Option<Value>, name: &str, args: Value) -
                 build_error(id, -32602, "Invalid type, must be 'skill' or 'agent'")
             }
         } else {
-            build_error(id, -32602, "Invalid arguments: 'id' and 'type' are required")
+            build_error(
+                id,
+                -32602,
+                "Invalid arguments: 'id' and 'type' are required",
+            )
         }
     } else {
         build_error(id, -32601, "Tool not found")
     }
 }
 
-fn handle_item_tool_call(pool: &DbPool, id: Option<Value>, action: &str, args: Value, item_type: ItemType) -> String {
+fn handle_item_tool_call(
+    pool: &DbPool,
+    id: Option<Value>,
+    action: &str,
+    args: Value,
+    item_type: ItemType,
+) -> String {
     match action {
         "search" => {
             if let Some(query) = args.get("query").and_then(|q| q.as_str()) {
@@ -360,7 +370,8 @@ fn handle_item_tool_call(pool: &DbPool, id: Option<Value>, action: &str, args: V
                     .unwrap_or(5);
                 match db::item_search(pool, query, item_type, limit) {
                     Ok(items) => {
-                        let text = serde_json::to_string_pretty(&items).unwrap_or_else(|_| "[]".to_string());
+                        let text = serde_json::to_string_pretty(&items)
+                            .unwrap_or_else(|_| "[]".to_string());
                         build_tool_result(id, text)
                     }
                     Err(_) => build_error(id, -32000, "Database error during search"),
@@ -474,7 +485,8 @@ fn handle_item_tool_call(pool: &DbPool, id: Option<Value>, action: &str, args: V
 
             match items_result {
                 Ok(items) => {
-                    let text = serde_json::to_string_pretty(&items).unwrap_or_else(|_| "[]".to_string());
+                    let text =
+                        serde_json::to_string_pretty(&items).unwrap_or_else(|_| "[]".to_string());
                     build_tool_result(id, text)
                 }
                 Err(_) => build_error(id, -32000, "Database error during export"),

@@ -26,7 +26,7 @@ pub enum Commands {
     },
 
     /// Full-text search the index
-    Search { 
+    Search {
         query: String,
         /// The type of item to search (skill or agent)
         #[arg(short = 't', long = "type", default_value = "skill")]
@@ -88,7 +88,7 @@ pub enum Commands {
         /// Maximum results when using --query (default: 200)
         #[arg(long, default_value_t = 200)]
         limit: u32,
-        
+
         /// The type of item to export (skill or agent)
         #[arg(short = 't', long = "type", default_value = "skill")]
         item_type: crate::models::ItemType,

@@ -1,6 +1,6 @@
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
-use rusqlite::{params, Error as RusqliteError};
+use rusqlite::{Error as RusqliteError, params};
 use std::path::Path;
 
 use crate::models::{Item, ItemMetadata, ItemType};
@@ -122,7 +122,8 @@ pub fn init_pool(db_path: &Path) -> DbResult<DbPool> {
     )?;
 
     // MIGRATION: Move old skills table into items table
-    let mut stmt = conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='skills'")?;
+    let mut stmt =
+        conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='skills'")?;
     if stmt.exists([])? {
         conn.execute("INSERT OR IGNORE INTO items (id, item_type, name, description, content, created_at, updated_at) 
                       SELECT id, 'skill', name, description, content, created_at, updated_at FROM skills", [])?;
@@ -131,7 +132,8 @@ pub fn init_pool(db_path: &Path) -> DbResult<DbPool> {
     }
 
     // MIGRATION: Move old agents table into items table
-    let mut stmt = conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='agents'")?;
+    let mut stmt =
+        conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='agents'")?;
     if stmt.exists([])? {
         conn.execute("INSERT OR IGNORE INTO items (id, item_type, name, description, content, created_at, updated_at) 
                       SELECT id, 'agent', name, description, content, created_at, updated_at FROM agents", [])?;
@@ -187,7 +189,13 @@ pub fn item_upsert(pool: &DbPool, item: &Item, item_type: ItemType) -> DbResult<
             description = excluded.description,
             content     = excluded.content,
             updated_at  = CURRENT_TIMESTAMP",
-        params![item.id, item_type.to_string(), item.name, item.description, item.content],
+        params![
+            item.id,
+            item_type.to_string(),
+            item.name,
+            item.description,
+            item.content
+        ],
     )?;
     Ok(())
 }
@@ -207,7 +215,12 @@ pub fn item_fetch(pool: &DbPool, id: &str, item_type: ItemType) -> DbResult<Opti
     }
 }
 
-pub fn item_search(pool: &DbPool, query: &str, item_type: ItemType, limit: u32) -> DbResult<Vec<ItemMetadata>> {
+pub fn item_search(
+    pool: &DbPool,
+    query: &str,
+    item_type: ItemType,
+    limit: u32,
+) -> DbResult<Vec<ItemMetadata>> {
     let limit = limit.min(MAX_SEARCH_LIMIT);
     let conn = pool.get()?;
     let mut stmt = conn.prepare(
@@ -235,7 +248,8 @@ pub fn item_search(pool: &DbPool, query: &str, item_type: ItemType, limit: u32) 
 
 pub fn list_items(pool: &DbPool, item_type: ItemType) -> DbResult<Vec<ItemMetadata>> {
     let conn = pool.get()?;
-    let mut stmt = conn.prepare("SELECT id, name, description FROM items WHERE item_type = ?1 ORDER BY id")?;
+    let mut stmt =
+        conn.prepare("SELECT id, name, description FROM items WHERE item_type = ?1 ORDER BY id")?;
     let item_iter = stmt.query_map(params![item_type.to_string()], |row| {
         Ok(ItemMetadata {
             id: row.get(0)?,
@@ -253,7 +267,9 @@ pub fn list_items(pool: &DbPool, item_type: ItemType) -> DbResult<Vec<ItemMetada
 
 pub fn item_fetch_all(pool: &DbPool, item_type: ItemType) -> DbResult<Vec<Item>> {
     let conn = pool.get()?;
-    let mut stmt = conn.prepare("SELECT id, name, description, content FROM items WHERE item_type = ?1 ORDER BY id")?;
+    let mut stmt = conn.prepare(
+        "SELECT id, name, description, content FROM items WHERE item_type = ?1 ORDER BY id",
+    )?;
     let item_iter = stmt.query_map(params![item_type.to_string()], |row| {
         Ok(Item {
             id: row.get(0)?,
@@ -279,7 +295,9 @@ pub fn item_fetch_by_ids(pool: &DbPool, ids: &[&str], item_type: ItemType) -> Db
     let mut items = Vec::new();
     let type_str = item_type.to_string();
     for id in ids {
-        let mut stmt = conn.prepare("SELECT id, name, description, content FROM items WHERE id = ?1 AND item_type = ?2")?;
+        let mut stmt = conn.prepare(
+            "SELECT id, name, description, content FROM items WHERE id = ?1 AND item_type = ?2",
+        )?;
         let mut rows = stmt.query(params![id, type_str])?;
         if let Some(row) = rows.next()? {
             items.push(Item {
@@ -293,7 +311,12 @@ pub fn item_fetch_by_ids(pool: &DbPool, ids: &[&str], item_type: ItemType) -> Db
     Ok(items)
 }
 
-pub fn item_search_full(pool: &DbPool, query: &str, item_type: ItemType, limit: u32) -> DbResult<Vec<Item>> {
+pub fn item_search_full(
+    pool: &DbPool,
+    query: &str,
+    item_type: ItemType,
+    limit: u32,
+) -> DbResult<Vec<Item>> {
     let limit = limit.min(MAX_SEARCH_LIMIT);
     let conn = pool.get()?;
     let mut stmt = conn.prepare(
@@ -324,7 +347,10 @@ pub fn item_delete(pool: &DbPool, id: &str, item_type: ItemType) -> DbResult<boo
         return Err(DbError::Validation(format!("Invalid id '{}'", id)));
     }
     let conn = pool.get()?;
-    let rows = conn.execute("DELETE FROM items WHERE id = ?1 AND item_type = ?2", params![id, item_type.to_string()])?;
+    let rows = conn.execute(
+        "DELETE FROM items WHERE id = ?1 AND item_type = ?2",
+        params![id, item_type.to_string()],
+    )?;
     Ok(rows > 0)
 }
 
@@ -338,22 +364,33 @@ pub fn item_delete_bulk(pool: &DbPool, ids: &[&str], item_type: ItemType) -> DbR
     let mut deleted = 0usize;
     let type_str = item_type.to_string();
     for id in ids {
-        deleted += conn.execute("DELETE FROM items WHERE id = ?1 AND item_type = ?2", params![id, type_str])?;
+        deleted += conn.execute(
+            "DELETE FROM items WHERE id = ?1 AND item_type = ?2",
+            params![id, type_str],
+        )?;
     }
     Ok(deleted)
 }
 
 pub fn item_purge(pool: &DbPool, item_type: ItemType) -> DbResult<usize> {
     let conn = pool.get()?;
-    let deleted = conn.execute("DELETE FROM items WHERE item_type = ?1", params![item_type.to_string()])?;
+    let deleted = conn.execute(
+        "DELETE FROM items WHERE item_type = ?1",
+        params![item_type.to_string()],
+    )?;
     conn.execute("INSERT INTO items_fts(items_fts) VALUES('rebuild')", [])?;
     Ok(deleted)
 }
 
-pub fn all_item_ids(pool: &DbPool, item_type: ItemType) -> DbResult<std::collections::HashSet<String>> {
+pub fn all_item_ids(
+    pool: &DbPool,
+    item_type: ItemType,
+) -> DbResult<std::collections::HashSet<String>> {
     let conn = pool.get()?;
     let mut stmt = conn.prepare("SELECT id FROM items WHERE item_type = ?1")?;
-    let ids = stmt.query_map(params![item_type.to_string()], |row| row.get::<_, String>(0))?;
+    let ids = stmt.query_map(params![item_type.to_string()], |row| {
+        row.get::<_, String>(0)
+    })?;
     let mut set = std::collections::HashSet::new();
     for id in ids {
         set.insert(id?);
@@ -365,7 +402,10 @@ pub fn all_item_ids(pool: &DbPool, item_type: ItemType) -> DbResult<std::collect
 
 pub fn log_usage(pool: &DbPool, item_id: &str, item_type: ItemType) -> DbResult<()> {
     if !id_is_safe(item_id) {
-        return Err(DbError::Validation(format!("Invalid item id '{}'", item_id)));
+        return Err(DbError::Validation(format!(
+            "Invalid item id '{}'",
+            item_id
+        )));
     }
     let conn = pool.get()?;
     conn.execute(
@@ -422,7 +462,7 @@ mod tests {
     #[test]
     fn test_item_isolation() {
         let pool = init_pool(Path::new(":memory:")).unwrap();
-        
+
         let s = Item {
             id: "target".to_string(),
             name: "Skill Target".to_string(),
@@ -451,16 +491,18 @@ mod tests {
     #[test]
     fn test_log_usage() {
         let pool = init_pool(Path::new(":memory:")).unwrap();
-        
+
         assert!(log_usage(&pool, "target", ItemType::Skill).is_ok());
-        
+
         let conn = pool.get().unwrap();
-        let mut stmt = conn.prepare("SELECT item_id, item_type FROM usage_logs").unwrap();
+        let mut stmt = conn
+            .prepare("SELECT item_id, item_type FROM usage_logs")
+            .unwrap();
         let mut rows = stmt.query([]).unwrap();
         let row = rows.next().unwrap().unwrap();
         let item_id: String = row.get(0).unwrap();
         let item_type: String = row.get(1).unwrap();
-        
+
         assert_eq!(item_id, "target");
         assert_eq!(item_type, "skill");
     }

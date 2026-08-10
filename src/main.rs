@@ -48,17 +48,23 @@ fn main() {
             Commands::Serve => {
                 mcp::start_mcp_server(pool);
             }
-            Commands::Sync { dir, prune, item_type } => {
+            Commands::Sync {
+                dir,
+                prune,
+                item_type,
+            } => {
                 sync_items(&pool, &dir, item_type, prune);
             }
-            Commands::Search { query, item_type } => match db::item_search(&pool, &query, item_type.clone(), 50) {
-                Ok(items) => {
-                    for item in items {
-                        println!("- {} ({}): {}", item.id, item.name, item.description);
+            Commands::Search { query, item_type } => {
+                match db::item_search(&pool, &query, item_type.clone(), 50) {
+                    Ok(items) => {
+                        for item in items {
+                            println!("- {} ({}): {}", item.id, item.name, item.description);
+                        }
                     }
+                    Err(e) => eprintln!("Search failed: {}", e),
                 }
-                Err(e) => eprintln!("Search failed: {}", e),
-            },
+            }
             Commands::List { item_type } => match db::list_items(&pool, item_type.clone()) {
                 Ok(items) => {
                     for item in items {
@@ -67,11 +73,13 @@ fn main() {
                 }
                 Err(e) => eprintln!("List failed: {}", e),
             },
-            Commands::Remove { id, item_type } => match db::item_delete(&pool, &id, item_type.clone()) {
-                Ok(true) => println!("Removed {} '{}'.", item_type, id),
-                Ok(false) => eprintln!("{} '{}' not found.", item_type, id),
-                Err(e) => eprintln!("Failed to remove {} '{}': {}", item_type, id, e),
-            },
+            Commands::Remove { id, item_type } => {
+                match db::item_delete(&pool, &id, item_type.clone()) {
+                    Ok(true) => println!("Removed {} '{}'.", item_type, id),
+                    Ok(false) => eprintln!("{} '{}' not found.", item_type, id),
+                    Err(e) => eprintln!("Failed to remove {} '{}': {}", item_type, id, e),
+                }
+            }
             Commands::RemoveBulk { ids, item_type } => {
                 let refs: Vec<&str> = ids.iter().map(String::as_str).collect();
                 match db::item_delete_bulk(&pool, &refs, item_type.clone()) {
@@ -83,7 +91,8 @@ fn main() {
                 if !yes {
                     eprintln!(
                         "This will permanently delete ALL {}s.\n\
-                         Re-run with --yes to confirm.", item_type
+                         Re-run with --yes to confirm.",
+                        item_type
                     );
                     std::process::exit(1);
                 }
@@ -99,10 +108,19 @@ fn main() {
                 limit,
                 item_type,
             } => {
-                export_items(&pool, &dir, ids.as_deref(), query.as_deref(), limit, item_type);
+                export_items(
+                    &pool,
+                    &dir,
+                    ids.as_deref(),
+                    query.as_deref(),
+                    limit,
+                    item_type,
+                );
             }
             Commands::Metrics => {
-                println!("Metrics tracking is active. Run direct sqlite queries on usage_logs to view time-series analysis.");
+                println!(
+                    "Metrics tracking is active. Run direct sqlite queries on usage_logs to view time-series analysis."
+                );
             }
         }
     } else {
@@ -333,7 +351,10 @@ fn export_items(
     }
 
     println!("\nExported {} {}(s) to '{}'.", exported, item_type, dir);
-    println!("Share the directory and import with:  skill-cli sync --type {} --dir <path>", item_type);
+    println!(
+        "Share the directory and import with:  skill-cli sync --type {} --dir <path>",
+        item_type
+    );
 }
 
 #[cfg(test)]
