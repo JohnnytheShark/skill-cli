@@ -11,7 +11,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::cli::{Cli, Commands};
-use crate::models::Skill;
+use crate::models::{Item, ItemType};
 
 #[derive(Deserialize, Debug)]
 struct Frontmatter {
@@ -48,47 +48,47 @@ fn main() {
             Commands::Serve => {
                 mcp::start_mcp_server(pool);
             }
-            Commands::Sync { dir, prune } => {
-                sync_skills(&pool, &dir, prune);
+            Commands::Sync { dir, prune, item_type } => {
+                sync_items(&pool, &dir, item_type, prune);
             }
-            Commands::Search { query } => match db::skills_search(&pool, &query, 50) {
-                Ok(skills) => {
-                    for skill in skills {
-                        println!("- {} ({}): {}", skill.id, skill.name, skill.description);
+            Commands::Search { query, item_type } => match db::item_search(&pool, &query, item_type.clone(), 50) {
+                Ok(items) => {
+                    for item in items {
+                        println!("- {} ({}): {}", item.id, item.name, item.description);
                     }
                 }
                 Err(e) => eprintln!("Search failed: {}", e),
             },
-            Commands::List => match db::list_skills(&pool) {
-                Ok(skills) => {
-                    for skill in skills {
-                        println!("- {} ({}): {}", skill.id, skill.name, skill.description);
+            Commands::List { item_type } => match db::list_items(&pool, item_type.clone()) {
+                Ok(items) => {
+                    for item in items {
+                        println!("- {} ({}): {}", item.id, item.name, item.description);
                     }
                 }
                 Err(e) => eprintln!("List failed: {}", e),
             },
-            Commands::Remove { id } => match db::skills_delete(&pool, &id) {
-                Ok(true) => println!("Removed skill '{}'.", id),
-                Ok(false) => eprintln!("Skill '{}' not found.", id),
-                Err(e) => eprintln!("Failed to remove skill '{}': {}", id, e),
+            Commands::Remove { id, item_type } => match db::item_delete(&pool, &id, item_type.clone()) {
+                Ok(true) => println!("Removed {} '{}'.", item_type, id),
+                Ok(false) => eprintln!("{} '{}' not found.", item_type, id),
+                Err(e) => eprintln!("Failed to remove {} '{}': {}", item_type, id, e),
             },
-            Commands::RemoveBulk { ids } => {
+            Commands::RemoveBulk { ids, item_type } => {
                 let refs: Vec<&str> = ids.iter().map(String::as_str).collect();
-                match db::skills_delete_bulk(&pool, &refs) {
-                    Ok(n) => println!("Removed {} skill(s).", n),
+                match db::item_delete_bulk(&pool, &refs, item_type.clone()) {
+                    Ok(n) => println!("Removed {} {}(s).", n, item_type),
                     Err(e) => eprintln!("Bulk remove failed: {}", e),
                 }
             }
-            Commands::Purge { yes } => {
+            Commands::Purge { yes, item_type } => {
                 if !yes {
                     eprintln!(
-                        "This will permanently delete ALL skills.\n\
-                         Re-run with --yes to confirm: skill-cli purge --yes"
+                        "This will permanently delete ALL {}s.\n\
+                         Re-run with --yes to confirm.", item_type
                     );
                     std::process::exit(1);
                 }
-                match db::skills_purge(&pool) {
-                    Ok(n) => println!("Purged {} skill(s) from the database.", n),
+                match db::item_purge(&pool, item_type.clone()) {
+                    Ok(n) => println!("Purged {} {}(s) from the database.", n, item_type),
                     Err(e) => eprintln!("Purge failed: {}", e),
                 }
             }
@@ -97,8 +97,12 @@ fn main() {
                 ids,
                 query,
                 limit,
+                item_type,
             } => {
-                export_skills(&pool, &dir, ids.as_deref(), query.as_deref(), limit);
+                export_items(&pool, &dir, ids.as_deref(), query.as_deref(), limit, item_type);
+            }
+            Commands::Metrics => {
+                println!("Metrics tracking is active. Run direct sqlite queries on usage_logs to view time-series analysis.");
             }
         }
     } else {
@@ -106,14 +110,13 @@ fn main() {
     }
 }
 
-fn sync_skills(pool: &db::DbPool, dir: &str, prune: bool) {
+fn sync_items(pool: &db::DbPool, dir: &str, item_type: ItemType, prune: bool) {
     let path = Path::new(dir);
     if !path.exists() || !path.is_dir() {
         eprintln!("Error: '{}' does not exist or is not a directory.", dir);
         return;
     }
 
-    // Resolve to a canonical absolute path to prevent path traversal via symlinks
     let canonical = match path.canonicalize() {
         Ok(p) => p,
         Err(e) => {
@@ -122,12 +125,11 @@ fn sync_skills(pool: &db::DbPool, dir: &str, prune: bool) {
         }
     };
 
-    // If pruning, snapshot the current DB IDs before we start
     let existing_ids: Option<HashSet<String>> = if prune {
-        match db::all_skill_ids(pool) {
+        match db::all_item_ids(pool, item_type.clone()) {
             Ok(ids) => Some(ids),
             Err(e) => {
-                eprintln!("Failed to load existing skill IDs for prune: {}", e);
+                eprintln!("Failed to load existing {} IDs for prune: {}", item_type, e);
                 return;
             }
         }
@@ -149,7 +151,6 @@ fn sync_skills(pool: &db::DbPool, dir: &str, prune: bool) {
     for entry in entries.flatten() {
         let entry_path = entry.path();
 
-        // Skip symlinks explicitly
         match entry_path.symlink_metadata() {
             Ok(meta) if meta.is_symlink() => {
                 eprintln!("Skipping symlink: {}", entry_path.display());
@@ -173,8 +174,7 @@ fn sync_skills(pool: &db::DbPool, dir: &str, prune: bool) {
 
         if !db::id_is_safe(&id) {
             eprintln!(
-                "Skipping '{}': stem '{}' contains characters not allowed in a skill ID \
-                 (use alphanumeric, hyphens, underscores only).",
+                "Skipping '{}': stem '{}' contains invalid characters.",
                 entry_path.display(),
                 id
             );
@@ -186,7 +186,7 @@ fn sync_skills(pool: &db::DbPool, dir: &str, prune: bool) {
             .is_ok_and(|m| m.len() > db::MAX_FIELD_BYTES as u64)
         {
             eprintln!(
-                "Skipping '{}': file size exceeds the 1 MiB limit.",
+                "Skipping '{}': file size exceeds limit.",
                 entry_path.display()
             );
             continue;
@@ -194,14 +194,14 @@ fn sync_skills(pool: &db::DbPool, dir: &str, prune: bool) {
 
         match fs::read_to_string(&entry_path) {
             Ok(content) => {
-                if let Some(skill) = parse_skill_markdown(&id, &content) {
-                    match db::skills_upsert(pool, &skill) {
+                if let Some(item) = parse_item_markdown(&id, &content) {
+                    match db::item_upsert(pool, &item, item_type.clone()) {
                         Ok(_) => {
-                            println!("Imported skill: {}", id);
+                            println!("Imported {}: {}", item_type, id);
                             imported += 1;
                             seen_ids.insert(id);
                         }
-                        Err(e) => eprintln!("Failed to upsert skill '{}': {}", id, e),
+                        Err(e) => eprintln!("Failed to upsert {} '{}': {}", item_type, id, e),
                     }
                 }
             }
@@ -209,9 +209,8 @@ fn sync_skills(pool: &db::DbPool, dir: &str, prune: bool) {
         }
     }
 
-    println!("Successfully synced {} skill(s).", imported);
+    println!("Successfully synced {} {}(s).", imported, item_type);
 
-    // Prune: remove any DB skill whose ID was not in the directory
     if let Some(before_ids) = existing_ids {
         let stale: Vec<&str> = before_ids
             .iter()
@@ -220,24 +219,24 @@ fn sync_skills(pool: &db::DbPool, dir: &str, prune: bool) {
             .collect();
 
         if stale.is_empty() {
-            println!("No stale skills to prune.");
+            println!("No stale {}s to prune.", item_type);
         } else {
-            match db::skills_delete_bulk(pool, &stale) {
-                Ok(n) => println!("Pruned {} stale skill(s): {:?}", n, stale),
+            match db::item_delete_bulk(pool, &stale, item_type.clone()) {
+                Ok(n) => println!("Pruned {} stale {}(s): {:?}", n, item_type, stale),
                 Err(e) => eprintln!("Prune failed: {}", e),
             }
         }
     }
 }
 
-fn parse_skill_markdown(id: &str, content: &str) -> Option<Skill> {
+fn parse_item_markdown(id: &str, content: &str) -> Option<Item> {
     if content.starts_with("---") {
         let parts: Vec<&str> = content.splitn(3, "---").collect();
         if parts.len() == 3 {
             let frontmatter_str = parts[1];
             let body = parts[2].trim();
             if let Ok(fm) = serde_yml::from_str::<Frontmatter>(frontmatter_str) {
-                return Some(Skill {
+                return Some(Item {
                     id: id.to_string(),
                     name: fm.name.unwrap_or_else(|| id.to_string()),
                     description: fm.description.unwrap_or_default(),
@@ -247,7 +246,7 @@ fn parse_skill_markdown(id: &str, content: &str) -> Option<Skill> {
         }
     }
 
-    Some(Skill {
+    Some(Item {
         id: id.to_string(),
         name: id.to_string(),
         description: String::new(),
@@ -255,80 +254,75 @@ fn parse_skill_markdown(id: &str, content: &str) -> Option<Skill> {
     })
 }
 
-/// Render a Skill back to a sync-compatible Markdown string with YAML frontmatter.
-fn skill_to_markdown(skill: &Skill) -> String {
+fn item_to_markdown(item: &Item) -> String {
     let mut out = String::new();
     let _ = writeln!(out, "---");
-    let _ = writeln!(out, "name: \"{}\"", skill.name.replace('"', "\\\""));
+    let _ = writeln!(out, "name: \"{}\"", item.name.replace('"', "\\\""));
     let _ = writeln!(
         out,
         "description: \"{}\"",
-        skill.description.replace('"', "\\\"")
+        item.description.replace('"', "\\\"")
     );
     let _ = writeln!(out, "---");
     let _ = writeln!(out);
-    out.push_str(&skill.content);
-    if !skill.content.ends_with('\n') {
+    out.push_str(&item.content);
+    if !item.content.ends_with('\n') {
         out.push('\n');
     }
     out
 }
 
-fn export_skills(
+fn export_items(
     pool: &db::DbPool,
     dir: &str,
     ids: Option<&[String]>,
     query: Option<&str>,
     limit: u32,
+    item_type: ItemType,
 ) {
-    // Create output directory if it doesn't exist
     let out_path = Path::new(dir);
     if let Err(e) = fs::create_dir_all(out_path) {
         eprintln!("Failed to create output directory '{}': {}", dir, e);
         return;
     }
 
-    // Fetch the skills to export
-    let skills: Vec<Skill> = match (ids, query) {
-        // Selective export by explicit IDs
+    let items: Vec<Item> = match (ids, query) {
         (Some(id_list), _) => {
             let refs: Vec<&str> = id_list.iter().map(String::as_str).collect();
-            match db::skills_fetch_by_ids(pool, &refs) {
+            match db::item_fetch_by_ids(pool, &refs, item_type.clone()) {
                 Ok(s) => s,
                 Err(e) => {
-                    eprintln!("Failed to fetch skills: {}", e);
+                    eprintln!("Failed to fetch {}s: {}", item_type, e);
                     return;
                 }
             }
         }
-        // Filtered export by FTS query
-        (None, Some(q)) => match db::skills_search_full(pool, q, limit) {
+        (None, Some(q)) => match db::item_search_full(pool, q, item_type.clone(), limit) {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("Failed to search skills: {}", e);
+                eprintln!("Failed to search {}s: {}", item_type, e);
                 return;
             }
         },
-        // Full export (no filter)
-        (None, None) => match db::skills_fetch_all(pool) {
+        (None, None) => match db::item_fetch_all(pool, item_type.clone()) {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("Failed to fetch all skills: {}", e);
+                eprintln!("Failed to fetch all {}s: {}", item_type, e);
                 return;
             }
         },
     };
 
-    if skills.is_empty() {
-        println!("No skills matched — nothing exported.");
+    if items.is_empty() {
+        println!("No {}s matched — nothing exported.", item_type);
         return;
     }
 
     let mut exported = 0usize;
-    for skill in &skills {
-        let filename = format!("{}.md", skill.id);
+    for item in &items {
+        let filename = format!("{}.md", item.id);
         let file_path = out_path.join(&filename);
-        let markdown = skill_to_markdown(skill);
+        let markdown = item_to_markdown(item);
         match fs::write(&file_path, markdown) {
             Ok(_) => {
                 println!("Exported: {}", filename);
@@ -338,8 +332,8 @@ fn export_skills(
         }
     }
 
-    println!("\nExported {} skill(s) to '{}'.", exported, dir);
-    println!("Share the directory and import with:  skill-cli sync --dir <path>");
+    println!("\nExported {} {}(s) to '{}'.", exported, item_type, dir);
+    println!("Share the directory and import with:  skill-cli sync --type {} --dir <path>", item_type);
 }
 
 #[cfg(test)]
@@ -347,7 +341,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_skill_markdown_with_frontmatter() {
+    fn test_parse_item_markdown_with_frontmatter() {
         let raw = r#"---
 name: Git Interactive Rebase
 description: Step by step guide to squash commits
@@ -356,38 +350,38 @@ description: Step by step guide to squash commits
 # Rebase Instructions
 Run git rebase -i HEAD~3
 "#;
-        let skill = parse_skill_markdown("git-rebase", raw).unwrap();
-        assert_eq!(skill.id, "git-rebase");
-        assert_eq!(skill.name, "Git Interactive Rebase");
-        assert_eq!(skill.description, "Step by step guide to squash commits");
+        let item = parse_item_markdown("git-rebase", raw).unwrap();
+        assert_eq!(item.id, "git-rebase");
+        assert_eq!(item.name, "Git Interactive Rebase");
+        assert_eq!(item.description, "Step by step guide to squash commits");
         assert_eq!(
-            skill.content,
+            item.content,
             "# Rebase Instructions\nRun git rebase -i HEAD~3"
         );
     }
 
     #[test]
-    fn test_parse_skill_markdown_without_frontmatter() {
+    fn test_parse_item_markdown_without_frontmatter() {
         let raw = "# Just Markdown\nNo frontmatter here.";
-        let skill = parse_skill_markdown("raw-skill", raw).unwrap();
-        assert_eq!(skill.id, "raw-skill");
-        assert_eq!(skill.name, "raw-skill");
-        assert_eq!(skill.description, "");
-        assert_eq!(skill.content, raw);
+        let item = parse_item_markdown("raw-item", raw).unwrap();
+        assert_eq!(item.id, "raw-item");
+        assert_eq!(item.name, "raw-item");
+        assert_eq!(item.description, "");
+        assert_eq!(item.content, raw);
     }
 
     #[test]
-    fn test_skill_markdown_roundtrip() {
-        let original = Skill {
+    fn test_item_markdown_roundtrip() {
+        let original = Item {
             id: "cargo-audit".to_string(),
             name: "Cargo \"Audit\" Tool".to_string(),
             description: "Scans dependencies for security advisories".to_string(),
             content: "# Audit\nRun `cargo audit` in terminal.\n".to_string(),
         };
 
-        let rendered = skill_to_markdown(&original);
+        let rendered = item_to_markdown(&original);
         assert!(rendered.starts_with("---\n"));
-        let parsed = parse_skill_markdown(&original.id, &rendered).unwrap();
+        let parsed = parse_item_markdown(&original.id, &rendered).unwrap();
         assert_eq!(parsed.id, original.id);
         assert_eq!(parsed.name, original.name);
         assert_eq!(parsed.description, original.description);

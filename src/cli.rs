@@ -17,55 +17,83 @@ pub enum Commands {
     Sync {
         #[arg(short, long)]
         dir: String,
-        /// Remove skills from the database whose .md file no longer exists in `<dir>`
+        /// Remove items from the database whose .md file no longer exists in `<dir>`
         #[arg(long, default_value_t = false)]
         prune: bool,
+        /// The type of item to sync (skill or agent)
+        #[arg(short = 't', long = "type", default_value = "skill")]
+        item_type: crate::models::ItemType,
     },
 
-    /// Full-text search the skill index
-    Search { query: String },
+    /// Full-text search the index
+    Search { 
+        query: String,
+        /// The type of item to search (skill or agent)
+        #[arg(short = 't', long = "type", default_value = "skill")]
+        item_type: crate::models::ItemType,
+    },
 
-    /// Lists all indexed skill IDs and descriptions
-    List,
+    /// Lists all indexed IDs and descriptions
+    List {
+        /// The type of item to list (skill or agent)
+        #[arg(short = 't', long = "type", default_value = "skill")]
+        item_type: crate::models::ItemType,
+    },
 
-    /// Remove a single skill by ID
+    /// Remove a single item by ID
     Remove {
-        /// The skill ID to delete
+        /// The ID to delete
         id: String,
+        /// The type of item to remove (skill or agent)
+        #[arg(short = 't', long = "type", default_value = "skill")]
+        item_type: crate::models::ItemType,
     },
 
-    /// Remove a list of skills by ID (space-separated)
+    /// Remove a list of items by ID (space-separated)
     RemoveBulk {
-        /// One or more skill IDs to delete
+        /// One or more IDs to delete
         #[arg(required = true)]
         ids: Vec<String>,
+        /// The type of item to remove (skill or agent)
+        #[arg(short = 't', long = "type", default_value = "skill")]
+        item_type: crate::models::ItemType,
     },
 
-    /// Delete ALL skills from the database. Requires --yes to confirm.
+    /// Delete ALL items of a given type from the database. Requires --yes to confirm.
     Purge {
-        /// Confirm that you want to delete every skill in the database
+        /// Confirm that you want to delete every item
         #[arg(long)]
         yes: bool,
+        /// The type of item to purge (skill or agent)
+        #[arg(short = 't', long = "type", default_value = "skill")]
+        item_type: crate::models::ItemType,
     },
 
-    /// Export skills as .md files (sync-compatible) into a directory.
+    /// Export items as .md files (sync-compatible) into a directory.
     ///
-    /// By default exports ALL skills. Use --ids or --query to filter.
+    /// By default exports ALL items. Use --ids or --query to filter.
     Export {
         /// Output directory (created if it does not exist)
         #[arg(short, long)]
         dir: String,
 
-        /// Export only these specific skill IDs (space-separated)
+        /// Export only these specific IDs (space-separated)
         #[arg(long, conflicts_with = "query")]
         ids: Option<Vec<String>>,
 
-        /// Export only skills matching this FTS search query
+        /// Export only items matching this FTS search query
         #[arg(long, conflicts_with = "ids")]
         query: Option<String>,
 
         /// Maximum results when using --query (default: 200)
         #[arg(long, default_value_t = 200)]
         limit: u32,
+        
+        /// The type of item to export (skill or agent)
+        #[arg(short = 't', long = "type", default_value = "skill")]
+        item_type: crate::models::ItemType,
     },
+
+    /// View usage metrics
+    Metrics,
 }

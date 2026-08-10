@@ -3,10 +3,8 @@ use serde_json::Value;
 use std::io::{self, BufRead, Write};
 
 use crate::db::{self, DbPool, MAX_SEARCH_LIMIT};
-use crate::models::Skill;
+use crate::models::{Item, ItemType};
 
-/// Maximum byte length of a single incoming JSON-RPC line.
-/// Prevents memory exhaustion from a single enormous input line.
 const MAX_LINE_BYTES: usize = 2 * 1024 * 1024; // 2 MiB
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -42,8 +40,6 @@ fn build_response(id: Option<Value>, result: Option<Value>, error: Option<RpcErr
         error,
         id,
     };
-    // serde_json only fails on types that impl Serialize incorrectly (none here),
-    // but we handle it gracefully rather than unwrapping.
     match serde_json::to_string(&response) {
         Ok(s) => s,
         Err(_) => r#"{"jsonrpc":"2.0","error":{"code":-32603,"message":"Internal serialization error"},"id":null}"#.to_string(),
@@ -75,7 +71,6 @@ pub fn start_mcp_server(pool: DbPool) {
             continue;
         }
 
-        // Reject lines that exceed the size limit before parsing
         if line.len() > MAX_LINE_BYTES {
             let resp = build_error(None, -32700, "Request too large");
             println!("{}", resp);
@@ -92,7 +87,6 @@ pub fn start_mcp_server(pool: DbPool) {
                 }
             }
             Err(_) => {
-                // Do NOT echo the parse error detail — it can reflect back raw user input
                 let resp = build_error(None, -32700, "Parse error");
                 println!("{}", resp);
                 let _ = io::stdout().flush();
@@ -127,12 +121,7 @@ fn handle_request(pool: &DbPool, req: RpcRequest) -> Option<String> {
                             "type": "object",
                             "properties": {
                                 "query": { "type": "string", "maxLength": 1000 },
-                                "limit": {
-                                    "type": "integer",
-                                    "default": 5,
-                                    "minimum": 1,
-                                    "maximum": MAX_SEARCH_LIMIT
-                                }
+                                "limit": { "type": "integer", "default": 5, "minimum": 1, "maximum": MAX_SEARCH_LIMIT }
                             },
                             "required": ["query"],
                             "additionalProperties": false
@@ -143,9 +132,7 @@ fn handle_request(pool: &DbPool, req: RpcRequest) -> Option<String> {
                         "description": "Fetches full content (Markdown instructions) for a single skill ID",
                         "inputSchema": {
                             "type": "object",
-                            "properties": {
-                                "id": { "type": "string", "maxLength": 256 }
-                            },
+                            "properties": { "id": { "type": "string", "maxLength": 256 } },
                             "required": ["id"],
                             "additionalProperties": false
                         }
@@ -170,9 +157,7 @@ fn handle_request(pool: &DbPool, req: RpcRequest) -> Option<String> {
                         "description": "Delete a single skill by ID. Returns whether the skill existed.",
                         "inputSchema": {
                             "type": "object",
-                            "properties": {
-                                "id": { "type": "string", "maxLength": 256, "pattern": "^[a-zA-Z0-9_-]+$" }
-                            },
+                            "properties": { "id": { "type": "string", "maxLength": 256, "pattern": "^[a-zA-Z0-9_-]+$" } },
                             "required": ["id"],
                             "additionalProperties": false
                         }
@@ -196,27 +181,105 @@ fn handle_request(pool: &DbPool, req: RpcRequest) -> Option<String> {
                     },
                     {
                         "name": "skills_export",
-                        "description": "Export skills as a JSON array of complete skill objects (id, name, description, content). Optionally filter by ids or FTS query. Use to share skills with others.",
+                        "description": "Export skills as a JSON array of complete skill objects. Optionally filter by ids or FTS query.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "ids": { "type": "array", "items": { "type": "string", "maxLength": 256 } },
+                                "query": { "type": "string", "maxLength": 1000 },
+                                "limit": { "type": "integer", "default": 200, "minimum": 1, "maximum": 200 }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "name": "agents_search",
+                        "description": "Queries agents_fts. Returns ONLY high-level metadata (ID, name, description)",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "query": { "type": "string", "maxLength": 1000 },
+                                "limit": { "type": "integer", "default": 5, "minimum": 1, "maximum": MAX_SEARCH_LIMIT }
+                            },
+                            "required": ["query"],
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "name": "agents_fetch",
+                        "description": "Fetches full content for a single agent ID",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": { "id": { "type": "string", "maxLength": 256 } },
+                            "required": ["id"],
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "name": "agents_upsert",
+                        "description": "Inserts or updates an agent in SQLite and refreshes FTS indexes",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "id": { "type": "string", "maxLength": 256, "pattern": "^[a-zA-Z0-9_-]+$" },
+                                "name": { "type": "string", "maxLength": 500 },
+                                "description": { "type": "string", "maxLength": 1000 },
+                                "content": { "type": "string", "maxLength": 1048576 }
+                            },
+                            "required": ["id", "name", "description", "content"],
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "name": "agents_delete",
+                        "description": "Delete a single agent by ID. Returns whether the agent existed.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": { "id": { "type": "string", "maxLength": 256, "pattern": "^[a-zA-Z0-9_-]+$" } },
+                            "required": ["id"],
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "name": "agents_delete_bulk",
+                        "description": "Delete multiple agents by ID in one call. Returns count deleted.",
                         "inputSchema": {
                             "type": "object",
                             "properties": {
                                 "ids": {
                                     "type": "array",
-                                    "items": { "type": "string", "maxLength": 256 },
-                                    "description": "Specific skill IDs to export. Omit to export all."
-                                },
-                                "query": {
-                                    "type": "string",
-                                    "maxLength": 1000,
-                                    "description": "FTS search query to filter exported skills. Cannot be combined with ids."
-                                },
-                                "limit": {
-                                    "type": "integer",
-                                    "default": 200,
-                                    "minimum": 1,
-                                    "maximum": 200
+                                    "items": { "type": "string", "maxLength": 256, "pattern": "^[a-zA-Z0-9_-]+$" },
+                                    "minItems": 1,
+                                    "maxItems": 500
                                 }
                             },
+                            "required": ["ids"],
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "name": "agents_export",
+                        "description": "Export agents as a JSON array of complete agent objects. Optionally filter by ids or FTS query.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "ids": { "type": "array", "items": { "type": "string", "maxLength": 256 } },
+                                "query": { "type": "string", "maxLength": 1000 },
+                                "limit": { "type": "integer", "default": 200, "minimum": 1, "maximum": 200 }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "name": "log_usage",
+                        "description": "Logs the usage of a skill or agent for metrics tracking.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "id": { "type": "string", "maxLength": 256 },
+                                "type": { "type": "string", "enum": ["skill", "agent"] }
+                            },
+                            "required": ["id", "type"],
                             "additionalProperties": false
                         }
                     }
@@ -241,90 +304,126 @@ fn handle_request(pool: &DbPool, req: RpcRequest) -> Option<String> {
 }
 
 fn handle_tool_call(pool: &DbPool, id: Option<Value>, name: &str, args: Value) -> String {
-    match name {
-        "skills_search" => {
+    let (item_type, action) = if name.starts_with("skills_") {
+        (Some(ItemType::Skill), &name["skills_".len()..])
+    } else if name.starts_with("agents_") {
+        (Some(ItemType::Agent), &name["agents_".len()..])
+    } else {
+        (None, name)
+    };
+
+    if let Some(t) = item_type {
+        return handle_item_tool_call(pool, id, action, args, t);
+    }
+
+    if name == "log_usage" {
+        let item_id = args.get("id").and_then(|i| i.as_str());
+        let item_type_str = args.get("type").and_then(|t| t.as_str());
+        
+        if let (Some(id_str), Some(type_str)) = (item_id, item_type_str) {
+            let parsed_type = match type_str {
+                "skill" => Some(ItemType::Skill),
+                "agent" => Some(ItemType::Agent),
+                _ => None,
+            };
+            
+            if let Some(t) = parsed_type {
+                match db::log_usage(pool, id_str, t) {
+                    Ok(_) => {
+                        let text = serde_json::json!({"status": "success"}).to_string();
+                        build_tool_result(id, text)
+                    }
+                    Err(e) => build_error(id, -32602, &format!("Failed to log usage: {}", e)),
+                }
+            } else {
+                build_error(id, -32602, "Invalid type, must be 'skill' or 'agent'")
+            }
+        } else {
+            build_error(id, -32602, "Invalid arguments: 'id' and 'type' are required")
+        }
+    } else {
+        build_error(id, -32601, "Tool not found")
+    }
+}
+
+fn handle_item_tool_call(pool: &DbPool, id: Option<Value>, action: &str, args: Value, item_type: ItemType) -> String {
+    match action {
+        "search" => {
             if let Some(query) = args.get("query").and_then(|q| q.as_str()) {
-                // Clamp query length to prevent sending enormous strings to FTS
                 if query.len() > 1000 {
                     return build_error(id, -32602, "Query string too long (max 1000 chars)");
                 }
-                // Safe cast: as_u64 gives at most u64::MAX; clamping happens inside skills_search
                 let limit = args
                     .get("limit")
                     .and_then(|l| l.as_u64())
                     .map(|l| l.min(MAX_SEARCH_LIMIT as u64) as u32)
                     .unwrap_or(5);
-                match db::skills_search(pool, query, limit) {
-                    Ok(skills) => {
-                        // Use to_string — safe, no unwrap
-                        let text = serde_json::to_string_pretty(&skills)
-                            .unwrap_or_else(|_| "[]".to_string());
+                match db::item_search(pool, query, item_type, limit) {
+                    Ok(items) => {
+                        let text = serde_json::to_string_pretty(&items).unwrap_or_else(|_| "[]".to_string());
                         build_tool_result(id, text)
                     }
-                    // Sanitise: return a generic DB error message, not the internal detail
                     Err(_) => build_error(id, -32000, "Database error during search"),
                 }
             } else {
                 build_error(id, -32602, "Invalid arguments: 'query' is required")
             }
         }
-        "skills_fetch" => {
-            if let Some(skill_id) = args.get("id").and_then(|i| i.as_str()) {
-                match db::skills_fetch(pool, skill_id) {
+        "fetch" => {
+            if let Some(item_id) = args.get("id").and_then(|i| i.as_str()) {
+                match db::item_fetch(pool, item_id, item_type.clone()) {
                     Ok(Some(content)) => build_tool_result(id, content),
-                    Ok(None) => build_tool_result(id, "Skill not found".to_string()),
+                    Ok(None) => build_tool_result(id, format!("{} not found", item_type)),
                     Err(_) => build_error(id, -32000, "Database error during fetch"),
                 }
             } else {
                 build_error(id, -32602, "Invalid arguments: 'id' is required")
             }
         }
-        "skills_upsert" => {
-            if let Ok(skill) = serde_json::from_value::<Skill>(args.clone()) {
-                match db::skills_upsert(pool, &skill) {
+        "upsert" => {
+            if let Ok(item) = serde_json::from_value::<Item>(args.clone()) {
+                match db::item_upsert(pool, &item, item_type) {
                     Ok(_) => {
                         let text = serde_json::json!({
                             "status": "success",
-                            "id": skill.id
+                            "id": item.id
                         })
                         .to_string();
                         build_tool_result(id, text)
                     }
-                    // Validation errors contain safe user-facing messages; DB errors are sanitised
                     Err(e) => build_error(id, -32602, &format!("Upsert failed: {}", e)),
                 }
             } else {
-                build_error(id, -32602, "Invalid arguments for skills_upsert")
+                build_error(id, -32602, "Invalid arguments for upsert")
             }
         }
-        "skills_delete" => {
-            if let Some(skill_id) = args.get("id").and_then(|i| i.as_str()) {
-                match db::skills_delete(pool, skill_id) {
+        "delete" => {
+            if let Some(item_id) = args.get("id").and_then(|i| i.as_str()) {
+                match db::item_delete(pool, item_id, item_type) {
                     Ok(found) => {
                         let text = serde_json::json!({
                             "status": "success",
                             "deleted": found,
-                            "id": skill_id
+                            "id": item_id
                         })
                         .to_string();
                         build_tool_result(id, text)
                     }
-                    Err(_) => build_error(id, -32602, "Invalid skill id"),
+                    Err(_) => build_error(id, -32602, "Invalid id"),
                 }
             } else {
                 build_error(id, -32602, "Invalid arguments: 'id' is required")
             }
         }
-        "skills_delete_bulk" => {
+        "delete_bulk" => {
             if let Some(ids_val) = args.get("ids") {
                 if let Some(arr) = ids_val.as_array() {
-                    // Cap at 500 IDs
                     if arr.len() > 500 {
                         return build_error(id, -32602, "Too many IDs (max 500 per call)");
                     }
                     let id_strs: Option<Vec<&str>> = arr.iter().map(|v| v.as_str()).collect();
                     if let Some(refs) = id_strs {
-                        match db::skills_delete_bulk(pool, &refs) {
+                        match db::item_delete_bulk(pool, &refs, item_type) {
                             Ok(n) => {
                                 let text = serde_json::json!({
                                     "status": "success",
@@ -345,8 +444,7 @@ fn handle_tool_call(pool: &DbPool, id: Option<Value>, name: &str, args: Value) -
                 build_error(id, -32602, "Invalid arguments: 'ids' is required")
             }
         }
-        "skills_export" => {
-            // ids and query are mutually exclusive; if both somehow arrive, ids wins
+        "export" => {
             let has_ids = args.get("ids").and_then(|v| v.as_array()).is_some();
             let query_str = args.get("query").and_then(|q| q.as_str());
             let limit = args
@@ -355,29 +453,28 @@ fn handle_tool_call(pool: &DbPool, id: Option<Value>, name: &str, args: Value) -
                 .map(|l| l.min(200) as u32)
                 .unwrap_or(200);
 
-            let skills_result = if has_ids {
+            let items_result = if has_ids {
                 let arr = args["ids"].as_array().unwrap();
                 if arr.len() > 500 {
                     return build_error(id, -32602, "Too many IDs (max 500)");
                 }
                 let id_strs: Option<Vec<&str>> = arr.iter().map(|v| v.as_str()).collect();
                 match id_strs {
-                    Some(refs) => db::skills_fetch_by_ids(pool, &refs),
+                    Some(refs) => db::item_fetch_by_ids(pool, &refs, item_type.clone()),
                     None => return build_error(id, -32602, "All ids must be strings"),
                 }
             } else if let Some(q) = query_str {
                 if q.len() > 1000 {
                     return build_error(id, -32602, "Query string too long (max 1000 chars)");
                 }
-                db::skills_search_full(pool, q, limit)
+                db::item_search_full(pool, q, item_type.clone(), limit)
             } else {
-                db::skills_fetch_all(pool)
+                db::item_fetch_all(pool, item_type.clone())
             };
 
-            match skills_result {
-                Ok(skills) => {
-                    let text =
-                        serde_json::to_string_pretty(&skills).unwrap_or_else(|_| "[]".to_string());
+            match items_result {
+                Ok(items) => {
+                    let text = serde_json::to_string_pretty(&items).unwrap_or_else(|_| "[]".to_string());
                     build_tool_result(id, text)
                 }
                 Err(_) => build_error(id, -32000, "Database error during export"),
@@ -425,14 +522,12 @@ mod tests {
         let response = handle_request(&pool, req).unwrap();
         assert!(response.contains("skills_search"));
         assert!(response.contains("skills_fetch"));
-        assert!(response.contains("skills_upsert"));
-        assert!(response.contains("skills_delete"));
-        assert!(response.contains("skills_delete_bulk"));
-        assert!(response.contains("skills_export"));
+        assert!(response.contains("agents_search"));
+        assert!(response.contains("agents_fetch"));
     }
 
     #[test]
-    fn test_mcp_fetch_unknown_skill() {
+    fn test_mcp_fetch_unknown_item() {
         let pool = db::init_pool(Path::new(":memory:")).unwrap();
         let req = RpcRequest {
             jsonrpc: "2.0".to_string(),
@@ -444,7 +539,7 @@ mod tests {
             id: Some(serde_json::json!(3)),
         };
         let response = handle_request(&pool, req).unwrap();
-        assert!(response.contains("Skill not found"));
+        assert!(response.contains("skill not found"));
     }
 
     fn extract_tool_text(response_json: &str) -> String {
@@ -459,7 +554,6 @@ mod tests {
     fn test_mcp_upsert_fetch_delete() {
         let pool = db::init_pool(Path::new(":memory:")).unwrap();
 
-        // 1. Upsert
         let req = RpcRequest {
             jsonrpc: "2.0".to_string(),
             method: "tools/call".to_string(),
@@ -478,7 +572,6 @@ mod tests {
         let text = extract_tool_text(&response);
         assert!(text.contains("\"status\":\"success\"") && text.contains("git-rebase"));
 
-        // 2. Fetch
         let req_fetch = RpcRequest {
             jsonrpc: "2.0".to_string(),
             method: "tools/call".to_string(),
@@ -491,103 +584,5 @@ mod tests {
         let response_fetch = handle_request(&pool, req_fetch).unwrap();
         let text_fetch = extract_tool_text(&response_fetch);
         assert_eq!(text_fetch, "# Rebase steps\ngit rebase -i");
-
-        // 3. Export
-        let req_export = RpcRequest {
-            jsonrpc: "2.0".to_string(),
-            method: "tools/call".to_string(),
-            params: Some(serde_json::json!({
-                "name": "skills_export",
-                "arguments": {}
-            })),
-            id: Some(serde_json::json!(6)),
-        };
-        let response_export = handle_request(&pool, req_export).unwrap();
-        let text_export = extract_tool_text(&response_export);
-        assert!(text_export.contains("git-rebase"));
-
-        // 4. Delete
-        let req_del = RpcRequest {
-            jsonrpc: "2.0".to_string(),
-            method: "tools/call".to_string(),
-            params: Some(serde_json::json!({
-                "name": "skills_delete",
-                "arguments": { "id": "git-rebase" }
-            })),
-            id: Some(serde_json::json!(7)),
-        };
-        let response_del = handle_request(&pool, req_del).unwrap();
-        let text_del = extract_tool_text(&response_del);
-        assert!(text_del.contains("\"deleted\":true"));
-    }
-
-    #[test]
-    fn test_mcp_delete_bulk() {
-        let pool = db::init_pool(Path::new(":memory:")).unwrap();
-        // Upsert 2 skills
-        for id in ["b1", "b2"] {
-            db::skills_upsert(
-                &pool,
-                &crate::models::Skill {
-                    id: id.to_string(),
-                    name: id.to_string(),
-                    description: "desc".to_string(),
-                    content: "content".to_string(),
-                },
-            )
-            .unwrap();
-        }
-
-        let req = RpcRequest {
-            jsonrpc: "2.0".to_string(),
-            method: "tools/call".to_string(),
-            params: Some(serde_json::json!({
-                "name": "skills_delete_bulk",
-                "arguments": { "ids": ["b1", "b2"] }
-            })),
-            id: Some(serde_json::json!(8)),
-        };
-        let response = handle_request(&pool, req).unwrap();
-        let text = extract_tool_text(&response);
-        assert!(text.contains("\"deleted\":2"));
-    }
-
-    #[test]
-    fn test_mcp_unknown_tool() {
-        let pool = db::init_pool(Path::new(":memory:")).unwrap();
-        let req = RpcRequest {
-            jsonrpc: "2.0".to_string(),
-            method: "tools/call".to_string(),
-            params: Some(serde_json::json!({
-                "name": "drop_table",
-                "arguments": {}
-            })),
-            id: Some(serde_json::json!(9)),
-        };
-        let response = handle_request(&pool, req).unwrap();
-        assert!(response.contains("-32601"));
-        assert!(response.contains("Tool not found"));
-    }
-
-    #[test]
-    fn test_line_size_guard() {
-        let huge_line = "a".repeat(MAX_LINE_BYTES + 1);
-        assert!(huge_line.len() > MAX_LINE_BYTES);
-    }
-
-    #[test]
-    fn test_search_limit_clamped_in_tool_call() {
-        let pool = db::init_pool(Path::new(":memory:")).unwrap();
-        let req = RpcRequest {
-            jsonrpc: "2.0".to_string(),
-            method: "tools/call".to_string(),
-            params: Some(serde_json::json!({
-                "name": "skills_search",
-                "arguments": { "query": "rust", "limit": 999999 }
-            })),
-            id: Some(serde_json::json!(10)),
-        };
-        let response = handle_request(&pool, req).unwrap();
-        assert!(response.contains("result"));
     }
 }

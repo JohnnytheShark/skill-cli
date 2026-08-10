@@ -128,7 +128,7 @@ Git bisect uses a binary search algorithm to help you find which commit introduc
 ## Step 3: Sync Skills into the Database
 
 \`\`\`bash
-skill-cli sync --dir ./my-skills
+skill-cli sync --type skill --dir ./my-skills
 \`\`\`
 
 Expected output:
@@ -147,12 +147,12 @@ The database is stored at:
 
 List all indexed skills:
 \`\`\`bash
-skill-cli list
+skill-cli list --type skill
 \`\`\`
 
 Search by keyword:
 \`\`\`bash
-skill-cli search "binary search"
+skill-cli search --type skill "binary search"
 \`\`\`
 
 Expected output:

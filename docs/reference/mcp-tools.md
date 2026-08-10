@@ -58,7 +58,13 @@ Every session must begin with an `initialize` / `notifications/initialized` hand
 
 ---
 
-## Tool: `skills_search`
+## Tools Overview
+
+> **Note on Agents:** For every `skills_*` tool listed below, there is an identical `agents_*` counterpart (e.g. `agents_search`, `agents_upsert`, `agents_fetch`). They take the exact same arguments and behave identically but operate on the `agent` item type.
+
+---
+
+## Tool: `skills_search` (and `agents_search`)
 
 Query the FTS5 index for matching skills. Returns **metadata only** to preserve context tokens.
 
@@ -100,7 +106,7 @@ Results are ordered by FTS5 BM25 relevance (ascending rank score = better match 
 
 ---
 
-## Tool: `skills_fetch`
+## Tool: `skills_fetch` (and `agents_fetch`)
 
 Retrieve the **full Markdown content** of a single skill by its ID.
 
@@ -133,7 +139,7 @@ Returns the string `"Skill not found"` if the ID does not exist.
 
 ---
 
-## Tool: `skills_upsert`
+## Tool: `skills_upsert` (and `agents_upsert`)
 
 Insert or update a skill. The FTS index is refreshed automatically via database triggers.
 
@@ -172,7 +178,7 @@ Insert or update a skill. The FTS index is refreshed automatically via database 
 
 ---
 
-## Tool: `skills_delete`
+## Tool: `skills_delete` (and `agents_delete`)
 
 Delete a single skill by ID from the database and remove it from the FTS search index.
 
@@ -199,7 +205,7 @@ Delete a single skill by ID from the database and remove it from the FTS search 
 
 ---
 
-## Tool: `skills_delete_bulk`
+## Tool: `skills_delete_bulk` (and `agents_delete_bulk`)
 
 Delete multiple skills in a single MCP tool call.
 
@@ -227,7 +233,7 @@ Delete multiple skills in a single MCP tool call.
 
 ---
 
-## Tool: `skills_export`
+## Tool: `skills_export` (and `agents_export`)
 
 Export skills as a JSON array of complete skill objects. Can be filtered by `ids` or by FTS `query`.
 
@@ -265,6 +271,38 @@ Export skills as a JSON array of complete skill objects. Can be filtered by `ids
     "content": "..."
   }
 ]
+```
+
+---
+
+## Tool: `log_usage`
+
+Log the usage of a skill or agent for metrics tracking and time-series analytics.
+
+### Input Schema
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "ID of the skill or agent used"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["skill", "agent"],
+      "description": "The type of the item being logged"
+    }
+  },
+  "required": ["id", "type"]
+}
+```
+
+### Output
+
+```json
+{ "status": "success" }
 ```
 
 ---
