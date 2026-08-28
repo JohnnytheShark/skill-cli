@@ -244,7 +244,7 @@ Every session must begin with an \`initialize\` / \`notifications/initialized\` 
   "result": {
     "protocolVersion": "2024-11-05",
     "capabilities": { "tools": {} },
-    "serverInfo": { "name": "skill-cli", "version": "0.2.0" }
+    "serverInfo": { "name": "skill-cli", "version": "0.3.0" }
   },
   "id": 1
 }

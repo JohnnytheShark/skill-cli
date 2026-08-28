@@ -9,9 +9,9 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Tag name (e.g. v0.2.0)'
+        description: 'Tag name (e.g. v0.3.0)'
         required: true
-        default: 'v0.2.0'
+        default: 'v0.3.0'
 
 permissions:
   contents: write
@@ -86,7 +86,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          TAG="${{ github.ref_name || github.event.inputs.tag_name || 'v0.2.0' }}"
+          TAG="${{ github.ref_name || github.event.inputs.tag_name || 'v0.3.0' }}"
           ARCHIVE_NAME="skill-cli-${TAG}-${{ matrix.target }}"
           STAGE_DIR="stage/${ARCHIVE_NAME}"
           mkdir -p "${STAGE_DIR}"
@@ -108,7 +108,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $TAG = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } elseif ($env:INPUT_TAG_NAME) { $env:INPUT_TAG_NAME } else { "v0.2.0" }
+          $TAG = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } elseif ($env:INPUT_TAG_NAME) { $env:INPUT_TAG_NAME } else { "v0.3.0" }
           $ARCHIVE_NAME = "skill-cli-$TAG-${{ matrix.target }}"
           $STAGE_DIR = "stage/$ARCHIVE_NAME"
           New-Item -ItemType Directory -Force -Path $STAGE_DIR | Out-Null
