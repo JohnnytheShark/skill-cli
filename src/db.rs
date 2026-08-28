@@ -85,7 +85,10 @@ pub fn init_pool(db_path: &Path) -> DbResult<DbPool> {
         }
     }
     if !has_collections {
-        conn.execute("ALTER TABLE items ADD COLUMN collections TEXT NOT NULL DEFAULT '[]'", [])?;
+        conn.execute(
+            "ALTER TABLE items ADD COLUMN collections TEXT NOT NULL DEFAULT '[]'",
+            [],
+        )?;
         conn.execute("DROP TABLE IF EXISTS items_fts", [])?;
         conn.execute("DROP TRIGGER IF EXISTS items_ai", [])?;
         conn.execute("DROP TRIGGER IF EXISTS items_ad", [])?;
@@ -207,7 +210,8 @@ pub fn validate_item(item: &Item) -> DbResult<()> {
 pub fn item_upsert(pool: &DbPool, item: &Item, item_type: ItemType) -> DbResult<()> {
     validate_item(item)?;
     let conn = pool.get()?;
-    let collections_json = serde_json::to_string(&item.collections).unwrap_or_else(|_| "[]".to_string());
+    let collections_json =
+        serde_json::to_string(&item.collections).unwrap_or_else(|_| "[]".to_string());
     conn.execute(
         "INSERT INTO items (id, item_type, name, description, content, collections)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6)
@@ -253,7 +257,7 @@ pub fn item_search(
 ) -> DbResult<Vec<ItemMetadata>> {
     let limit = limit.min(MAX_SEARCH_LIMIT);
     let conn = pool.get()?;
-    
+
     let mut items = Vec::new();
     if let Some(col) = collection_filter {
         let mut stmt = conn.prepare(
@@ -265,16 +269,17 @@ pub fn item_search(
              ORDER BY rank
              LIMIT ?4",
         )?;
-        let item_iter = stmt.query_map(params![item_type.to_string(), query, col, limit], |row| {
-            let col_str: String = row.get(3)?;
-            let collections = serde_json::from_str(&col_str).unwrap_or_default();
-            Ok(ItemMetadata {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                description: row.get(2)?,
-                collections,
-            })
-        })?;
+        let item_iter =
+            stmt.query_map(params![item_type.to_string(), query, col, limit], |row| {
+                let col_str: String = row.get(3)?;
+                let collections = serde_json::from_str(&col_str).unwrap_or_default();
+                Ok(ItemMetadata {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    description: row.get(2)?,
+                    collections,
+                })
+            })?;
         for item in item_iter {
             items.push(item?);
         }
@@ -307,8 +312,9 @@ pub fn item_search(
 
 pub fn list_items(pool: &DbPool, item_type: ItemType) -> DbResult<Vec<ItemMetadata>> {
     let conn = pool.get()?;
-    let mut stmt =
-        conn.prepare("SELECT id, name, description, collections FROM items WHERE item_type = ?1 ORDER BY id")?;
+    let mut stmt = conn.prepare(
+        "SELECT id, name, description, collections FROM items WHERE item_type = ?1 ORDER BY id",
+    )?;
     let item_iter = stmt.query_map(params![item_type.to_string()], |row| {
         let col_str: String = row.get(3)?;
         let collections = serde_json::from_str(&col_str).unwrap_or_default();
@@ -400,17 +406,18 @@ pub fn item_search_full(
              ORDER BY rank
              LIMIT ?4",
         )?;
-        let item_iter = stmt.query_map(params![item_type.to_string(), query, col, limit], |row| {
-            let col_str: String = row.get(4)?;
-            let collections = serde_json::from_str(&col_str).unwrap_or_default();
-            Ok(Item {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                description: row.get(2)?,
-                content: row.get(3)?,
-                collections,
-            })
-        })?;
+        let item_iter =
+            stmt.query_map(params![item_type.to_string(), query, col, limit], |row| {
+                let col_str: String = row.get(4)?;
+                let collections = serde_json::from_str(&col_str).unwrap_or_default();
+                Ok(Item {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    description: row.get(2)?,
+                    content: row.get(3)?,
+                    collections,
+                })
+            })?;
         for item in item_iter {
             items.push(item?);
         }

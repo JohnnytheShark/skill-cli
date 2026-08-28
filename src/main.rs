@@ -57,7 +57,11 @@ fn main() {
             } => {
                 sync_items(&pool, &dir, item_type, prune);
             }
-            Commands::Search { query, collection, item_type } => {
+            Commands::Search {
+                query,
+                collection,
+                item_type,
+            } => {
                 let col_filter = collection.as_deref();
                 match db::item_search(&pool, &query, item_type.clone(), col_filter, 50) {
                     Ok(items) => {
@@ -344,7 +348,7 @@ fn export_items(
                     return;
                 }
             }
-        },
+        }
         (None, None, None) => match db::item_fetch_all(pool, item_type.clone()) {
             Ok(s) => s,
             Err(e) => {
