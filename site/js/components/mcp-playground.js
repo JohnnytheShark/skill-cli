@@ -33,6 +33,7 @@ export function renderMcpPlayground(containerId = 'playground-container') {
                 <button class="tool-chip active" data-tool="skills_search" role="tab" aria-selected="true">skills_search</button>
                 <button class="tool-chip" data-tool="skills_fetch" role="tab" aria-selected="false">skills_fetch</button>
                 <button class="tool-chip" data-tool="skills_upsert" role="tab" aria-selected="false">skills_upsert</button>
+                <button class="tool-chip" data-tool="collections_search" role="tab" aria-selected="false">collections_search</button>
                 <button class="tool-chip" data-tool="cli_search" role="tab" aria-selected="false">CLI: search</button>
               </div>
 

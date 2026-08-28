@@ -41,6 +41,7 @@ export function renderFooter(containerId = 'footer-container') {
               <li><a href="#doc=reference/mcp-tools.md">skills_upsert</a></li>
               <li><a href="#doc=reference/mcp-tools.md">skills_delete</a></li>
               <li><a href="#doc=reference/mcp-tools.md">skills_export</a></li>
+              <li><a href="#doc=reference/mcp-tools.md">collections_*</a></li>
             </ul>
           </div>
 

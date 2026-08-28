@@ -298,6 +298,10 @@ Query the FTS5 index for matching skills. Returns **metadata only** to preserve 
       "type": "string",
       "description": "FTS5 keyword query string"
     },
+    "collection": {
+      "type": "string",
+      "description": "Optional collection filter"
+    },
     "limit": {
       "type": "number",
       "description": "Maximum number of results to return (clamped to 200)",
@@ -317,7 +321,8 @@ A JSON array of skill metadata objects:
   {
     "id": "git-bisect",
     "name": "Git Bisect",
-    "description": "Use binary search to find the commit that introduced a bug"
+    "description": "Use binary search to find the commit that introduced a bug",
+    "collections": ["git"]
   }
 ]
 \`\`\`
@@ -383,6 +388,10 @@ Insert or update a skill. The FTS index is refreshed automatically via database 
     },
     "content": {
       "type": "string",
+      "description": "Full markdown content"
+    },
+    "collections": {
+      "type": "array",
       "description": "Full Markdown content for the skill"
     }
   },
