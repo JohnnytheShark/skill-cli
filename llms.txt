@@ -20,7 +20,7 @@
 ## Quick CLI Reference
 - `skill-cli serve` : Start MCP JSON-RPC 2.0 server over stdio.
 - `skill-cli sync --dir <PATH> [--prune]` : Ingest markdown skills from directory.
-- `skill-cli search "<QUERY>"` : BM25 full-text keyword query.
+- `skill-cli search "<QUERY>" [--collection <NAME>]` : BM25 full-text keyword query.
 - `skill-cli list` : List all indexed skill IDs.
 - `skill-cli remove <ID>` : Delete a skill.
 - `skill-cli remove-bulk <IDS...>` : Bulk delete skills.
@@ -28,12 +28,12 @@
 - `skill-cli purge --yes` : Clear entire database and rebuild FTS index.
 
 ## MCP Tools Reference
-- `skills_search`: `{"query": string, "limit"?: number}` -> `[{id, name, description}]`
+- `skills_search`: `{"query": string, "collection"?: string, "limit"?: number}` -> `[{id, name, description, collections}]`
 - `skills_fetch`: `{"id": string}` -> Raw markdown string
-- `skills_upsert`: `{"id": string, "name": string, "description": string, "content": string}` -> `{status: "success", id: string}`
+- `skills_upsert`: `{"id": string, "name": string, "description": string, "content": string, "collections"?: string[]}` -> `{status: "success", id: string}`
 - `skills_delete`: `{"id": string}` -> `{status: "success", deleted: boolean, id: string}`
 - `skills_delete_bulk`: `{"ids": string[]}` -> `{status: "success", deleted: number}`
-- `skills_export`: `{"ids"?: string[], "query"?: string, "limit"?: number}` -> `[{id, name, description, content}]`
+- `skills_export`: `{"ids"?: string[], "query"?: string, "collection"?: string, "limit"?: number}` -> `[{id, name, description, content}]`
 
 ## Links
 - [Repository](https://github.com/JohnnytheShark/skill-cli)

@@ -60,11 +60,11 @@ Every session must begin with an `initialize` / `notifications/initialized` hand
 
 ## Tools Overview
 
-> **Note on Agents:** For every `skills_*` tool listed below, there is an identical `agents_*` counterpart (e.g. `agents_search`, `agents_upsert`, `agents_fetch`). They take the exact same arguments and behave identically but operate on the `agent` item type.
+> **Note on Agents:** For every `skills_*` tool listed below, there is an identical `agents_*` counterpart (e.g. `agents_search`, `agents_upsert`, `agents_fetch`). They take the exact same arguments and behave identically but operate on the `agent` or `collection` item type respectively.
 
 ---
 
-## Tool: `skills_search` (and `agents_search`)
+## Tool: `skills_search` (`agents_search`, and `collections_search`)
 
 Query the FTS5 index for matching skills. Returns **metadata only** to preserve context tokens.
 
@@ -77,6 +77,10 @@ Query the FTS5 index for matching skills. Returns **metadata only** to preserve 
     "query": {
       "type": "string",
       "description": "FTS5 keyword query string"
+    },
+    "collection": {
+      "type": "string",
+      "description": "Optional collection filter"
     },
     "limit": {
       "type": "number",
@@ -97,7 +101,8 @@ A JSON array of skill metadata objects:
   {
     "id": "git-bisect",
     "name": "Git Bisect",
-    "description": "Use binary search to find the commit that introduced a bug"
+    "description": "Use binary search to find the commit that introduced a bug",
+    "collections": ["git"]
   }
 ]
 ```
@@ -106,7 +111,7 @@ Results are ordered by FTS5 BM25 relevance (ascending rank score = better match 
 
 ---
 
-## Tool: `skills_fetch` (and `agents_fetch`)
+## Tool: `skills_fetch` (`agents_fetch`, and `collections_fetch`)
 
 Retrieve the **full Markdown content** of a single skill by its ID.
 
@@ -139,7 +144,7 @@ Returns the string `"Skill not found"` if the ID does not exist.
 
 ---
 
-## Tool: `skills_upsert` (and `agents_upsert`)
+## Tool: `skills_upsert` (`agents_upsert`, and `collections_upsert`)
 
 Insert or update a skill. The FTS index is refreshed automatically via database triggers.
 
@@ -163,6 +168,10 @@ Insert or update a skill. The FTS index is refreshed automatically via database 
     },
     "content": {
       "type": "string",
+      "description": "Full markdown content"
+    },
+    "collections": {
+      "type": "array",
       "description": "Full Markdown content for the skill"
     }
   },
@@ -178,7 +187,7 @@ Insert or update a skill. The FTS index is refreshed automatically via database 
 
 ---
 
-## Tool: `skills_delete` (and `agents_delete`)
+## Tool: `skills_delete` (`agents_delete`, and `collections_delete`)
 
 Delete a single skill by ID from the database and remove it from the FTS search index.
 
@@ -205,7 +214,7 @@ Delete a single skill by ID from the database and remove it from the FTS search 
 
 ---
 
-## Tool: `skills_delete_bulk` (and `agents_delete_bulk`)
+## Tool: `skills_delete_bulk` (`agents_delete_bulk`, and `collections_delete_bulk`)
 
 Delete multiple skills in a single MCP tool call.
 
@@ -233,7 +242,7 @@ Delete multiple skills in a single MCP tool call.
 
 ---
 
-## Tool: `skills_export` (and `agents_export`)
+## Tool: `skills_export` (`agents_export`, and `collections_export`)
 
 Export skills as a JSON array of complete skill objects. Can be filtered by `ids` or by FTS `query`.
 

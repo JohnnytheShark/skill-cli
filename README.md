@@ -77,7 +77,7 @@ skill-cli list
 skill-cli serve
 ```
 
-Point any MCP-compatible agent at this binary and it will expose three tools: `skills_search`, `skills_fetch`, and `skills_upsert`.
+Point any MCP-compatible agent at this binary and it will expose three tool groups: `skills_*`, `agents_*`, and `collections_*`.
 
 ---
 
@@ -87,7 +87,7 @@ Point any MCP-compatible agent at this binary and it will expose three tools: `s
 |---|---|
 | `skill-cli serve` | Start the MCP JSON-RPC 2.0 server over stdio |
 | `skill-cli sync --dir <PATH> [--prune]` | Sync `.md` files in a directory into SQLite (optional `--prune` deletes removed files) |
-| `skill-cli search <QUERY>` | Full-text search the skill index |
+| `skill-cli search <QUERY> [--collection <NAME>]` | Full-text search the skill index |
 | `skill-cli list` | List all indexed skills |
 | `skill-cli remove <ID>` | Delete a single skill by ID |
 | `skill-cli remove-bulk <ID...>` | Delete multiple skills by ID |
@@ -100,12 +100,12 @@ Point any MCP-compatible agent at this binary and it will expose three tools: `s
 
 | Tool | Input | Output |
 |---|---|---|
-| `skills_search` | `{ "query": "...", "limit": 5 }` | Array of `{ id, name, description }` metadata |
+| `skills_search` | `{ "query": "...", "collection": "...", "limit": 5 }` | Array of `{ id, name, description }` metadata |
 | `skills_fetch` | `{ "id": "..." }` | Raw Markdown content string |
-| `skills_upsert` | `{ "id", "name", "description", "content" }` | `{ "status": "success", "id": "..." }` |
+| `skills_upsert` | `{ "id", "name", "description", "content", "collections" }` | `{ "status": "success", "id": "..." }` |
 | `skills_delete` | `{ "id": "..." }` | `{ "status": "success", "deleted": bool, "id": "..." }` |
 | `skills_delete_bulk` | `{ "ids": ["..."] }` | `{ "status": "success", "deleted": number }` |
-| `skills_export` | `{ "ids"?: [...], "query"?: "...", "limit"?: 200 }` | JSON array of complete `{ id, name, description, content }` objects |
+| `skills_export` | `{ "ids"?: [...], "query"?: "...", "collection"?: "...", "limit"?: 200 }` | JSON array of complete `{ id, name, description, content }` objects |
 
 ---
 
