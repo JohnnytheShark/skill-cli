@@ -6,6 +6,8 @@ pub struct Item {
     pub name: String,
     pub description: String,
     pub content: String,
+    #[serde(default)]
+    pub collections: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -13,6 +15,8 @@ pub struct ItemMetadata {
     pub id: String,
     pub name: String,
     pub description: String,
+    #[serde(default)]
+    pub collections: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, clap::ValueEnum)]
@@ -20,6 +24,7 @@ pub struct ItemMetadata {
 pub enum ItemType {
     Skill,
     Agent,
+    Collection,
 }
 
 impl std::fmt::Display for ItemType {
@@ -27,6 +32,7 @@ impl std::fmt::Display for ItemType {
         match self {
             ItemType::Skill => write!(f, "skill"),
             ItemType::Agent => write!(f, "agent"),
+            ItemType::Collection => write!(f, "collection"),
         }
     }
 }

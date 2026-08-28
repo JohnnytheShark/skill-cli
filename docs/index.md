@@ -41,10 +41,13 @@ skill-cli sync --type skill --dir ./my-skills
 skill-cli sync --type agent --dir ./my-agents
 
 # Search for a skill
-skill-cli search --type skill "rust async"
+skill-cli search --type skill "rust async" --collection "Backend"
 
 # List all indexed agents
 skill-cli list --type agent
+
+# List all indexed collections
+skill-cli list --type collection
 
 # View usage metrics
 skill-cli metrics

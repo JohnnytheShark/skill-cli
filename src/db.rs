@@ -65,12 +65,35 @@ pub fn init_pool(db_path: &Path) -> DbResult<DbPool> {
             name        TEXT NOT NULL,
             description TEXT NOT NULL,
             content     TEXT NOT NULL,
+            collections TEXT NOT NULL DEFAULT '[]',
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id, item_type)
         )",
         [],
     )?;
+
+    // MIGRATION: Add collections column if missing
+    let mut stmt = conn.prepare("PRAGMA table_info(items)")?;
+    let mut has_collections = false;
+    let mut rows = stmt.query([])?;
+    while let Some(row) = rows.next()? {
+        let name: String = row.get(1)?;
+        if name == "collections" {
+            has_collections = true;
+            break;
+        }
+    }
+    if !has_collections {
+        conn.execute(
+            "ALTER TABLE items ADD COLUMN collections TEXT NOT NULL DEFAULT '[]'",
+            [],
+        )?;
+        conn.execute("DROP TABLE IF EXISTS items_fts", [])?;
+        conn.execute("DROP TRIGGER IF EXISTS items_ai", [])?;
+        conn.execute("DROP TRIGGER IF EXISTS items_ad", [])?;
+        conn.execute("DROP TRIGGER IF EXISTS items_au", [])?;
+    }
 
     conn.execute(
         "CREATE VIRTUAL TABLE IF NOT EXISTS items_fts USING fts5(
@@ -79,6 +102,7 @@ pub fn init_pool(db_path: &Path) -> DbResult<DbPool> {
             name,
             description,
             content,
+            collections UNINDEXED,
             content='items',
             content_rowid='rowid'
         )",
@@ -87,26 +111,26 @@ pub fn init_pool(db_path: &Path) -> DbResult<DbPool> {
 
     conn.execute(
         "CREATE TRIGGER IF NOT EXISTS items_ai AFTER INSERT ON items BEGIN
-            INSERT INTO items_fts(rowid, id, item_type, name, description, content) 
-            VALUES (new.rowid, new.id, new.item_type, new.name, new.description, new.content);
+            INSERT INTO items_fts(rowid, id, item_type, name, description, content, collections) 
+            VALUES (new.rowid, new.id, new.item_type, new.name, new.description, new.content, new.collections);
         END",
         [],
     )?;
 
     conn.execute(
         "CREATE TRIGGER IF NOT EXISTS items_ad AFTER DELETE ON items BEGIN
-            INSERT INTO items_fts(items_fts, rowid, id, item_type, name, description, content) 
-            VALUES('delete', old.rowid, old.id, old.item_type, old.name, old.description, old.content);
+            INSERT INTO items_fts(items_fts, rowid, id, item_type, name, description, content, collections) 
+            VALUES('delete', old.rowid, old.id, old.item_type, old.name, old.description, old.content, old.collections);
         END",
         [],
     )?;
 
     conn.execute(
         "CREATE TRIGGER IF NOT EXISTS items_au AFTER UPDATE ON items BEGIN
-            INSERT INTO items_fts(items_fts, rowid, id, item_type, name, description, content) 
-            VALUES('delete', old.rowid, old.id, old.item_type, old.name, old.description, old.content);
-            INSERT INTO items_fts(rowid, id, item_type, name, description, content) 
-            VALUES (new.rowid, new.id, new.item_type, new.name, new.description, new.content);
+            INSERT INTO items_fts(items_fts, rowid, id, item_type, name, description, content, collections) 
+            VALUES('delete', old.rowid, old.id, old.item_type, old.name, old.description, old.content, old.collections);
+            INSERT INTO items_fts(rowid, id, item_type, name, description, content, collections) 
+            VALUES (new.rowid, new.id, new.item_type, new.name, new.description, new.content, new.collections);
         END",
         [],
     )?;
@@ -125,8 +149,8 @@ pub fn init_pool(db_path: &Path) -> DbResult<DbPool> {
     let mut stmt =
         conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='skills'")?;
     if stmt.exists([])? {
-        conn.execute("INSERT OR IGNORE INTO items (id, item_type, name, description, content, created_at, updated_at) 
-                      SELECT id, 'skill', name, description, content, created_at, updated_at FROM skills", [])?;
+        conn.execute("INSERT OR IGNORE INTO items (id, item_type, name, description, content, collections, created_at, updated_at) 
+                      SELECT id, 'skill', name, description, content, '[]', created_at, updated_at FROM skills", [])?;
         conn.execute("DROP TABLE skills", [])?;
         conn.execute("DROP TABLE IF EXISTS skills_fts", [])?;
     }
@@ -135,10 +159,15 @@ pub fn init_pool(db_path: &Path) -> DbResult<DbPool> {
     let mut stmt =
         conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='agents'")?;
     if stmt.exists([])? {
-        conn.execute("INSERT OR IGNORE INTO items (id, item_type, name, description, content, created_at, updated_at) 
-                      SELECT id, 'agent', name, description, content, created_at, updated_at FROM agents", [])?;
+        conn.execute("INSERT OR IGNORE INTO items (id, item_type, name, description, content, collections, created_at, updated_at) 
+                      SELECT id, 'agent', name, description, content, '[]', created_at, updated_at FROM agents", [])?;
         conn.execute("DROP TABLE agents", [])?;
         conn.execute("DROP TABLE IF EXISTS agents_fts", [])?;
+    }
+
+    if !has_collections {
+        // Rebuild FTS after schema migration
+        conn.execute("INSERT INTO items_fts(items_fts) VALUES('rebuild')", [])?;
     }
 
     Ok(pool)
@@ -181,20 +210,24 @@ pub fn validate_item(item: &Item) -> DbResult<()> {
 pub fn item_upsert(pool: &DbPool, item: &Item, item_type: ItemType) -> DbResult<()> {
     validate_item(item)?;
     let conn = pool.get()?;
+    let collections_json =
+        serde_json::to_string(&item.collections).unwrap_or_else(|_| "[]".to_string());
     conn.execute(
-        "INSERT INTO items (id, item_type, name, description, content)
-         VALUES (?1, ?2, ?3, ?4, ?5)
+        "INSERT INTO items (id, item_type, name, description, content, collections)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)
          ON CONFLICT(id, item_type) DO UPDATE SET
             name        = excluded.name,
             description = excluded.description,
             content     = excluded.content,
+            collections = excluded.collections,
             updated_at  = CURRENT_TIMESTAMP",
         params![
             item.id,
             item_type.to_string(),
             item.name,
             item.description,
-            item.content
+            item.content,
+            collections_json
         ],
     )?;
     Ok(())
@@ -219,42 +252,77 @@ pub fn item_search(
     pool: &DbPool,
     query: &str,
     item_type: ItemType,
+    collection_filter: Option<&str>,
     limit: u32,
 ) -> DbResult<Vec<ItemMetadata>> {
     let limit = limit.min(MAX_SEARCH_LIMIT);
     let conn = pool.get()?;
-    let mut stmt = conn.prepare(
-        "SELECT i.id, i.name, i.description
-         FROM items i
-         JOIN items_fts f ON i.rowid = f.rowid
-         WHERE i.item_type = ?1 AND items_fts MATCH ?2
-         ORDER BY rank
-         LIMIT ?3",
-    )?;
-    let item_iter = stmt.query_map(params![item_type.to_string(), query, limit], |row| {
-        Ok(ItemMetadata {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            description: row.get(2)?,
-        })
-    })?;
 
     let mut items = Vec::new();
-    for item in item_iter {
-        items.push(item?);
+    if let Some(col) = collection_filter {
+        let mut stmt = conn.prepare(
+            "SELECT i.id, i.name, i.description, i.collections
+             FROM items i
+             JOIN items_fts f ON i.rowid = f.rowid
+             WHERE i.item_type = ?1 AND items_fts MATCH ?2
+             AND EXISTS (SELECT 1 FROM json_each(i.collections) WHERE value = ?3)
+             ORDER BY rank
+             LIMIT ?4",
+        )?;
+        let item_iter =
+            stmt.query_map(params![item_type.to_string(), query, col, limit], |row| {
+                let col_str: String = row.get(3)?;
+                let collections = serde_json::from_str(&col_str).unwrap_or_default();
+                Ok(ItemMetadata {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    description: row.get(2)?,
+                    collections,
+                })
+            })?;
+        for item in item_iter {
+            items.push(item?);
+        }
+    } else {
+        let mut stmt = conn.prepare(
+            "SELECT i.id, i.name, i.description, i.collections
+             FROM items i
+             JOIN items_fts f ON i.rowid = f.rowid
+             WHERE i.item_type = ?1 AND items_fts MATCH ?2
+             ORDER BY rank
+             LIMIT ?3",
+        )?;
+        let item_iter = stmt.query_map(params![item_type.to_string(), query, limit], |row| {
+            let col_str: String = row.get(3)?;
+            let collections = serde_json::from_str(&col_str).unwrap_or_default();
+            Ok(ItemMetadata {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                description: row.get(2)?,
+                collections,
+            })
+        })?;
+        for item in item_iter {
+            items.push(item?);
+        }
     }
+
     Ok(items)
 }
 
 pub fn list_items(pool: &DbPool, item_type: ItemType) -> DbResult<Vec<ItemMetadata>> {
     let conn = pool.get()?;
-    let mut stmt =
-        conn.prepare("SELECT id, name, description FROM items WHERE item_type = ?1 ORDER BY id")?;
+    let mut stmt = conn.prepare(
+        "SELECT id, name, description, collections FROM items WHERE item_type = ?1 ORDER BY id",
+    )?;
     let item_iter = stmt.query_map(params![item_type.to_string()], |row| {
+        let col_str: String = row.get(3)?;
+        let collections = serde_json::from_str(&col_str).unwrap_or_default();
         Ok(ItemMetadata {
             id: row.get(0)?,
             name: row.get(1)?,
             description: row.get(2)?,
+            collections,
         })
     })?;
 
@@ -268,14 +336,17 @@ pub fn list_items(pool: &DbPool, item_type: ItemType) -> DbResult<Vec<ItemMetada
 pub fn item_fetch_all(pool: &DbPool, item_type: ItemType) -> DbResult<Vec<Item>> {
     let conn = pool.get()?;
     let mut stmt = conn.prepare(
-        "SELECT id, name, description, content FROM items WHERE item_type = ?1 ORDER BY id",
+        "SELECT id, name, description, content, collections FROM items WHERE item_type = ?1 ORDER BY id",
     )?;
     let item_iter = stmt.query_map(params![item_type.to_string()], |row| {
+        let col_str: String = row.get(4)?;
+        let collections = serde_json::from_str(&col_str).unwrap_or_default();
         Ok(Item {
             id: row.get(0)?,
             name: row.get(1)?,
             description: row.get(2)?,
             content: row.get(3)?,
+            collections,
         })
     })?;
     let mut items = Vec::new();
@@ -296,15 +367,18 @@ pub fn item_fetch_by_ids(pool: &DbPool, ids: &[&str], item_type: ItemType) -> Db
     let type_str = item_type.to_string();
     for id in ids {
         let mut stmt = conn.prepare(
-            "SELECT id, name, description, content FROM items WHERE id = ?1 AND item_type = ?2",
+            "SELECT id, name, description, content, collections FROM items WHERE id = ?1 AND item_type = ?2",
         )?;
         let mut rows = stmt.query(params![id, type_str])?;
         if let Some(row) = rows.next()? {
+            let col_str: String = row.get(4)?;
+            let collections = serde_json::from_str(&col_str).unwrap_or_default();
             items.push(Item {
                 id: row.get(0)?,
                 name: row.get(1)?,
                 description: row.get(2)?,
                 content: row.get(3)?,
+                collections,
             });
         }
     }
@@ -315,29 +389,61 @@ pub fn item_search_full(
     pool: &DbPool,
     query: &str,
     item_type: ItemType,
+    collection_filter: Option<&str>,
     limit: u32,
 ) -> DbResult<Vec<Item>> {
     let limit = limit.min(MAX_SEARCH_LIMIT);
     let conn = pool.get()?;
-    let mut stmt = conn.prepare(
-        "SELECT i.id, i.name, i.description, i.content
-         FROM items i
-         JOIN items_fts f ON i.rowid = f.rowid
-         WHERE i.item_type = ?1 AND items_fts MATCH ?2
-         ORDER BY rank
-         LIMIT ?3",
-    )?;
-    let item_iter = stmt.query_map(params![item_type.to_string(), query, limit], |row| {
-        Ok(Item {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            description: row.get(2)?,
-            content: row.get(3)?,
-        })
-    })?;
     let mut items = Vec::new();
-    for item in item_iter {
-        items.push(item?);
+
+    if let Some(col) = collection_filter {
+        let mut stmt = conn.prepare(
+            "SELECT i.id, i.name, i.description, i.content, i.collections
+             FROM items i
+             JOIN items_fts f ON i.rowid = f.rowid
+             WHERE i.item_type = ?1 AND items_fts MATCH ?2
+             AND EXISTS (SELECT 1 FROM json_each(i.collections) WHERE value = ?3)
+             ORDER BY rank
+             LIMIT ?4",
+        )?;
+        let item_iter =
+            stmt.query_map(params![item_type.to_string(), query, col, limit], |row| {
+                let col_str: String = row.get(4)?;
+                let collections = serde_json::from_str(&col_str).unwrap_or_default();
+                Ok(Item {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    description: row.get(2)?,
+                    content: row.get(3)?,
+                    collections,
+                })
+            })?;
+        for item in item_iter {
+            items.push(item?);
+        }
+    } else {
+        let mut stmt = conn.prepare(
+            "SELECT i.id, i.name, i.description, i.content, i.collections
+             FROM items i
+             JOIN items_fts f ON i.rowid = f.rowid
+             WHERE i.item_type = ?1 AND items_fts MATCH ?2
+             ORDER BY rank
+             LIMIT ?3",
+        )?;
+        let item_iter = stmt.query_map(params![item_type.to_string(), query, limit], |row| {
+            let col_str: String = row.get(4)?;
+            let collections = serde_json::from_str(&col_str).unwrap_or_default();
+            Ok(Item {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                description: row.get(2)?,
+                content: row.get(3)?,
+                collections,
+            })
+        })?;
+        for item in item_iter {
+            items.push(item?);
+        }
     }
     Ok(items)
 }
@@ -425,6 +531,7 @@ mod tests {
             name: id.to_string(),
             description: id.to_string(),
             content: id.to_string(),
+            collections: vec![],
         }
     }
 
@@ -443,7 +550,7 @@ mod tests {
     #[test]
     fn test_limit_clamping() {
         let pool = init_pool(Path::new(":memory:")).unwrap();
-        let result = item_search(&pool, "anything", ItemType::Skill, u32::MAX);
+        let result = item_search(&pool, "anything", ItemType::Skill, None, u32::MAX);
         assert!(result.is_ok());
     }
 
@@ -455,6 +562,7 @@ mod tests {
             name: "Bad".to_string(),
             description: "Bad".to_string(),
             content: "Bad".to_string(),
+            collections: vec![],
         };
         assert!(item_upsert(&pool, &bad, ItemType::Skill).is_err());
     }
@@ -468,22 +576,24 @@ mod tests {
             name: "Skill Target".to_string(),
             description: "A skill about Rust".to_string(),
             content: "Rust is fast.".to_string(),
+            collections: vec![],
         };
         let a = Item {
             id: "target".to_string(),
             name: "Agent Target".to_string(),
             description: "An agent about Rust".to_string(),
             content: "Rust is fast.".to_string(),
+            collections: vec![],
         };
 
         item_upsert(&pool, &s, ItemType::Skill).unwrap();
         item_upsert(&pool, &a, ItemType::Agent).unwrap();
 
-        let skills = item_search(&pool, "Rust", ItemType::Skill, 5).unwrap();
+        let skills = item_search(&pool, "Rust", ItemType::Skill, None, 5).unwrap();
         assert_eq!(skills.len(), 1);
         assert_eq!(skills[0].name, "Skill Target");
 
-        let agents = item_search(&pool, "Rust", ItemType::Agent, 5).unwrap();
+        let agents = item_search(&pool, "Rust", ItemType::Agent, None, 5).unwrap();
         assert_eq!(agents.len(), 1);
         assert_eq!(agents[0].name, "Agent Target");
     }

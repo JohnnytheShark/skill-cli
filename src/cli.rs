@@ -28,14 +28,17 @@ pub enum Commands {
     /// Full-text search the index
     Search {
         query: String,
-        /// The type of item to search (skill or agent)
+        /// Optional collection to filter by
+        #[arg(short, long)]
+        collection: Option<String>,
+        /// The type of item to search (skill, agent, or collection)
         #[arg(short = 't', long = "type", default_value = "skill")]
         item_type: crate::models::ItemType,
     },
 
     /// Lists all indexed IDs and descriptions
     List {
-        /// The type of item to list (skill or agent)
+        /// The type of item to list (skill, agent, or collection)
         #[arg(short = 't', long = "type", default_value = "skill")]
         item_type: crate::models::ItemType,
     },
@@ -44,7 +47,7 @@ pub enum Commands {
     Remove {
         /// The ID to delete
         id: String,
-        /// The type of item to remove (skill or agent)
+        /// The type of item to remove (skill, agent, or collection)
         #[arg(short = 't', long = "type", default_value = "skill")]
         item_type: crate::models::ItemType,
     },
@@ -54,7 +57,7 @@ pub enum Commands {
         /// One or more IDs to delete
         #[arg(required = true)]
         ids: Vec<String>,
-        /// The type of item to remove (skill or agent)
+        /// The type of item to remove (skill, agent, or collection)
         #[arg(short = 't', long = "type", default_value = "skill")]
         item_type: crate::models::ItemType,
     },
@@ -64,7 +67,7 @@ pub enum Commands {
         /// Confirm that you want to delete every item
         #[arg(long)]
         yes: bool,
-        /// The type of item to purge (skill or agent)
+        /// The type of item to purge (skill, agent, or collection)
         #[arg(short = 't', long = "type", default_value = "skill")]
         item_type: crate::models::ItemType,
     },
@@ -85,11 +88,15 @@ pub enum Commands {
         #[arg(long, conflicts_with = "ids")]
         query: Option<String>,
 
+        /// Optional collection to filter by
+        #[arg(short, long)]
+        collection: Option<String>,
+
         /// Maximum results when using --query (default: 200)
         #[arg(long, default_value_t = 200)]
         limit: u32,
 
-        /// The type of item to export (skill or agent)
+        /// The type of item to export (skill, agent, or collection)
         #[arg(short = 't', long = "type", default_value = "skill")]
         item_type: crate::models::ItemType,
     },

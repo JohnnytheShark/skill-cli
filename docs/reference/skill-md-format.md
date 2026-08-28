@@ -35,6 +35,8 @@ A file with no frontmatter is valid; all fields will fall back to defaults.
 |---|---|---|---|---|
 | `name` | string | No | file stem | Human-readable display name shown in search results |
 | `description` | string | No | `""` (empty) | One-sentence summary indexed by FTS5 |
+| `collections` | list of strings | No | `[]` (empty) | Collections/tags used to categorize items |
+| `tags` | list of strings | No | `[]` (empty) | Legacy alias for `collections` |
 
 Any additional YAML keys are currently ignored.
 
@@ -58,6 +60,9 @@ The body (everything after the closing `---`) is stored verbatim as the skill `c
 ---
 name: Rust Lifetimes
 description: Understand and apply lifetime annotations in Rust
+collections:
+  - rust
+  - concepts
 ---
 
 # Rust Lifetimes

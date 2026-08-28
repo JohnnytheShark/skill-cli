@@ -121,6 +121,7 @@ fn handle_request(pool: &DbPool, req: RpcRequest) -> Option<String> {
                             "type": "object",
                             "properties": {
                                 "query": { "type": "string", "maxLength": 1000 },
+                                "collection": { "type": "string", "maxLength": 256 },
                                 "limit": { "type": "integer", "default": 5, "minimum": 1, "maximum": MAX_SEARCH_LIMIT }
                             },
                             "required": ["query"],
@@ -146,7 +147,8 @@ fn handle_request(pool: &DbPool, req: RpcRequest) -> Option<String> {
                                 "id": { "type": "string", "maxLength": 256, "pattern": "^[a-zA-Z0-9_-]+$" },
                                 "name": { "type": "string", "maxLength": 500 },
                                 "description": { "type": "string", "maxLength": 1000 },
-                                "content": { "type": "string", "maxLength": 1048576 }
+                                "content": { "type": "string", "maxLength": 1048576 },
+                                "collections": { "type": "array", "items": { "type": "string" } }
                             },
                             "required": ["id", "name", "description", "content"],
                             "additionalProperties": false
@@ -187,6 +189,7 @@ fn handle_request(pool: &DbPool, req: RpcRequest) -> Option<String> {
                             "properties": {
                                 "ids": { "type": "array", "items": { "type": "string", "maxLength": 256 } },
                                 "query": { "type": "string", "maxLength": 1000 },
+                                "collection": { "type": "string", "maxLength": 256 },
                                 "limit": { "type": "integer", "default": 200, "minimum": 1, "maximum": 200 }
                             },
                             "additionalProperties": false
@@ -199,6 +202,7 @@ fn handle_request(pool: &DbPool, req: RpcRequest) -> Option<String> {
                             "type": "object",
                             "properties": {
                                 "query": { "type": "string", "maxLength": 1000 },
+                                "collection": { "type": "string", "maxLength": 256 },
                                 "limit": { "type": "integer", "default": 5, "minimum": 1, "maximum": MAX_SEARCH_LIMIT }
                             },
                             "required": ["query"],
@@ -224,7 +228,8 @@ fn handle_request(pool: &DbPool, req: RpcRequest) -> Option<String> {
                                 "id": { "type": "string", "maxLength": 256, "pattern": "^[a-zA-Z0-9_-]+$" },
                                 "name": { "type": "string", "maxLength": 500 },
                                 "description": { "type": "string", "maxLength": 1000 },
-                                "content": { "type": "string", "maxLength": 1048576 }
+                                "content": { "type": "string", "maxLength": 1048576 },
+                                "collections": { "type": "array", "items": { "type": "string" } }
                             },
                             "required": ["id", "name", "description", "content"],
                             "additionalProperties": false
@@ -265,6 +270,88 @@ fn handle_request(pool: &DbPool, req: RpcRequest) -> Option<String> {
                             "properties": {
                                 "ids": { "type": "array", "items": { "type": "string", "maxLength": 256 } },
                                 "query": { "type": "string", "maxLength": 1000 },
+                                "collection": { "type": "string", "maxLength": 256 },
+                                "limit": { "type": "integer", "default": 200, "minimum": 1, "maximum": 200 }
+                            },
+                            "additionalProperties": false
+                        }
+                    },
+                                        {
+                        "name": "collections_search",
+                        "description": "Queries collections_fts. Returns ONLY high-level metadata (ID, name, description)",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "query": { "type": "string", "maxLength": 1000 },
+                                "collection": { "type": "string", "maxLength": 256 },
+                                "limit": { "type": "integer", "default": 5, "minimum": 1, "maximum": MAX_SEARCH_LIMIT }
+                            },
+                            "required": ["query"],
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "name": "collections_fetch",
+                        "description": "Fetches full content for a single collection ID",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": { "id": { "type": "string", "maxLength": 256 } },
+                            "required": ["id"],
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "name": "collections_upsert",
+                        "description": "Inserts or updates a collection in SQLite and refreshes FTS indexes",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "id": { "type": "string", "maxLength": 256, "pattern": "^[a-zA-Z0-9_-]+$" },
+                                "name": { "type": "string", "maxLength": 500 },
+                                "description": { "type": "string", "maxLength": 1000 },
+                                "content": { "type": "string", "maxLength": 1048576 },
+                                "collections": { "type": "array", "items": { "type": "string" } }
+                            },
+                            "required": ["id", "name", "description", "content"],
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "name": "collections_delete",
+                        "description": "Delete a single collection by ID. Returns whether the collection existed.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": { "id": { "type": "string", "maxLength": 256, "pattern": "^[a-zA-Z0-9_-]+$" } },
+                            "required": ["id"],
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "name": "collections_delete_bulk",
+                        "description": "Delete multiple collections by ID in one call. Returns count deleted.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "ids": {
+                                    "type": "array",
+                                    "items": { "type": "string", "maxLength": 256, "pattern": "^[a-zA-Z0-9_-]+$" },
+                                    "minItems": 1,
+                                    "maxItems": 500
+                                }
+                            },
+                            "required": ["ids"],
+                            "additionalProperties": false
+                        }
+                    },
+                    {
+                        "name": "collections_export",
+                        "description": "Export collections as a JSON array of complete collection objects. Optionally filter by ids or FTS query.",
+                        "inputSchema": {
+                            "type": "object",
+                            "properties": {
+                                "ids": { "type": "array", "items": { "type": "string", "maxLength": 256 } },
+                                "query": { "type": "string", "maxLength": 1000 },
+                                "collection": { "type": "string", "maxLength": 256 },
                                 "limit": { "type": "integer", "default": 200, "minimum": 1, "maximum": 200 }
                             },
                             "additionalProperties": false
@@ -277,7 +364,7 @@ fn handle_request(pool: &DbPool, req: RpcRequest) -> Option<String> {
                             "type": "object",
                             "properties": {
                                 "id": { "type": "string", "maxLength": 256 },
-                                "type": { "type": "string", "enum": ["skill", "agent"] }
+                                "type": { "type": "string", "enum": ["skill", "agent", "collection"] }
                             },
                             "required": ["id", "type"],
                             "additionalProperties": false
@@ -308,6 +395,8 @@ fn handle_tool_call(pool: &DbPool, id: Option<Value>, name: &str, args: Value) -
         (Some(ItemType::Skill), stripped)
     } else if let Some(stripped) = name.strip_prefix("agents_") {
         (Some(ItemType::Agent), stripped)
+    } else if let Some(stripped) = name.strip_prefix("collections_") {
+        (Some(ItemType::Collection), stripped)
     } else {
         (None, name)
     };
@@ -368,7 +457,8 @@ fn handle_item_tool_call(
                     .and_then(|l| l.as_u64())
                     .map(|l| l.min(MAX_SEARCH_LIMIT as u64) as u32)
                     .unwrap_or(5);
-                match db::item_search(pool, query, item_type, limit) {
+                let collection_filter = args.get("collection").and_then(|c| c.as_str());
+                match db::item_search(pool, query, item_type, collection_filter, limit) {
                     Ok(items) => {
                         let text = serde_json::to_string_pretty(&items)
                             .unwrap_or_else(|_| "[]".to_string());
@@ -458,6 +548,7 @@ fn handle_item_tool_call(
         "export" => {
             let has_ids = args.get("ids").and_then(|v| v.as_array()).is_some();
             let query_str = args.get("query").and_then(|q| q.as_str());
+            let collection_filter = args.get("collection").and_then(|c| c.as_str());
             let limit = args
                 .get("limit")
                 .and_then(|l| l.as_u64())
@@ -474,11 +565,12 @@ fn handle_item_tool_call(
                     Some(refs) => db::item_fetch_by_ids(pool, &refs, item_type.clone()),
                     None => return build_error(id, -32602, "All ids must be strings"),
                 }
-            } else if let Some(q) = query_str {
+            } else if query_str.is_some() || collection_filter.is_some() {
+                let q = query_str.unwrap_or("");
                 if q.len() > 1000 {
                     return build_error(id, -32602, "Query string too long (max 1000 chars)");
                 }
-                db::item_search_full(pool, q, item_type.clone(), limit)
+                db::item_search_full(pool, q, item_type.clone(), collection_filter, limit)
             } else {
                 db::item_fetch_all(pool, item_type.clone())
             };

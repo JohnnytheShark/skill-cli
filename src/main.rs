@@ -17,6 +17,8 @@ use crate::models::{Item, ItemType};
 struct Frontmatter {
     name: Option<String>,
     description: Option<String>,
+    collections: Option<Vec<String>>,
+    tags: Option<Vec<String>>,
 }
 
 fn main() {
@@ -55,8 +57,13 @@ fn main() {
             } => {
                 sync_items(&pool, &dir, item_type, prune);
             }
-            Commands::Search { query, item_type } => {
-                match db::item_search(&pool, &query, item_type.clone(), 50) {
+            Commands::Search {
+                query,
+                collection,
+                item_type,
+            } => {
+                let col_filter = collection.as_deref();
+                match db::item_search(&pool, &query, item_type.clone(), col_filter, 50) {
                     Ok(items) => {
                         for item in items {
                             println!("- {} ({}): {}", item.id, item.name, item.description);
@@ -105,6 +112,7 @@ fn main() {
                 dir,
                 ids,
                 query,
+                collection,
                 limit,
                 item_type,
             } => {
@@ -113,6 +121,7 @@ fn main() {
                     &dir,
                     ids.as_deref(),
                     query.as_deref(),
+                    collection.as_deref(),
                     limit,
                     item_type,
                 );
@@ -254,11 +263,18 @@ fn parse_item_markdown(id: &str, content: &str) -> Option<Item> {
             let frontmatter_str = parts[1];
             let body = parts[2].trim();
             if let Ok(fm) = serde_yml::from_str::<Frontmatter>(frontmatter_str) {
+                let mut collections = fm.collections.unwrap_or_default();
+                if let Some(tags) = fm.tags {
+                    collections.extend(tags);
+                }
+                collections.sort();
+                collections.dedup();
                 return Some(Item {
                     id: id.to_string(),
                     name: fm.name.unwrap_or_else(|| id.to_string()),
                     description: fm.description.unwrap_or_default(),
                     content: body.to_string(),
+                    collections,
                 });
             }
         }
@@ -269,6 +285,7 @@ fn parse_item_markdown(id: &str, content: &str) -> Option<Item> {
         name: id.to_string(),
         description: String::new(),
         content: content.to_string(),
+        collections: vec![],
     })
 }
 
@@ -281,6 +298,12 @@ fn item_to_markdown(item: &Item) -> String {
         "description: \"{}\"",
         item.description.replace('"', "\\\"")
     );
+    if !item.collections.is_empty() {
+        let _ = writeln!(out, "collections:");
+        for col in &item.collections {
+            let _ = writeln!(out, "  - \"{}\"", col.replace('"', "\\\""));
+        }
+    }
     let _ = writeln!(out, "---");
     let _ = writeln!(out);
     out.push_str(&item.content);
@@ -295,6 +318,7 @@ fn export_items(
     dir: &str,
     ids: Option<&[String]>,
     query: Option<&str>,
+    collection: Option<&str>,
     limit: u32,
     item_type: ItemType,
 ) {
@@ -304,8 +328,8 @@ fn export_items(
         return;
     }
 
-    let items: Vec<Item> = match (ids, query) {
-        (Some(id_list), _) => {
+    let items: Vec<Item> = match (ids, query, collection) {
+        (Some(id_list), _, _) => {
             let refs: Vec<&str> = id_list.iter().map(String::as_str).collect();
             match db::item_fetch_by_ids(pool, &refs, item_type.clone()) {
                 Ok(s) => s,
@@ -315,14 +339,17 @@ fn export_items(
                 }
             }
         }
-        (None, Some(q)) => match db::item_search_full(pool, q, item_type.clone(), limit) {
-            Ok(s) => s,
-            Err(e) => {
-                eprintln!("Failed to search {}s: {}", item_type, e);
-                return;
+        (None, Some(_), _) | (None, None, Some(_)) => {
+            let query_str = query.unwrap_or("");
+            match db::item_search_full(pool, query_str, item_type.clone(), collection, limit) {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("Failed to search {}s: {}", item_type, e);
+                    return;
+                }
             }
-        },
-        (None, None) => match db::item_fetch_all(pool, item_type.clone()) {
+        }
+        (None, None, None) => match db::item_fetch_all(pool, item_type.clone()) {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("Failed to fetch all {}s: {}", item_type, e);
@@ -398,6 +425,7 @@ Run git rebase -i HEAD~3
             name: "Cargo \"Audit\" Tool".to_string(),
             description: "Scans dependencies for security advisories".to_string(),
             content: "# Audit\nRun `cargo audit` in terminal.\n".to_string(),
+            collections: vec![],
         };
 
         let rendered = item_to_markdown(&original);
