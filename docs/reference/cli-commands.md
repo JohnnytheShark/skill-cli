@@ -46,7 +46,7 @@ skill-cli sync --type <TYPE> --dir <PATH> [--prune]
 
 | Flag | Required | Description |
 |---|---|---|
-| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type to sync (`skill` or `agent`) |
+| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type to sync (`skill`, `agent`, or `collection`) |
 | `--dir <PATH>` / `-d <PATH>` | ✅ | Path to the directory containing `.md` files |
 | `--prune` | ❌ | Remove items from the database if their `.md` file is no longer in `<PATH>` |
 
@@ -64,12 +64,12 @@ skill-cli sync --type <TYPE> --dir <PATH> [--prune]
 Performs a full-text search and prints matching items to stdout.
 
 ```
-skill-cli search --type <TYPE> <QUERY>
+skill-cli search --type <TYPE> <QUERY> [--collection <NAME>]
 ```
 
 | Argument/Flag | Required | Description |
 |---|---|---|
-| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type to search (`skill` or `agent`) |
+| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type to search (`skill`, `agent`, or `collection`) |
 | `<QUERY>` | ✅ | Keyword or phrase to search. Supports FTS5 query syntax. |
 
 **Output format:**
@@ -91,7 +91,7 @@ skill-cli list --type <TYPE>
 
 | Flag | Required | Description |
 |---|---|---|
-| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type to list (`skill` or `agent`) |
+| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type to list (`skill`, `agent`, or `collection`) |
 
 **Output format:**
 ```
@@ -110,7 +110,7 @@ skill-cli remove --type <TYPE> <ID>
 
 | Argument/Flag | Required | Description |
 |---|---|---|
-| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type (`skill` or `agent`) |
+| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type (`skill`, `agent`, or `collection`) |
 | `<ID>` | ✅ | The item ID to delete |
 
 ---
@@ -125,7 +125,7 @@ skill-cli remove-bulk --type <TYPE> <ID1> <ID2> ...
 
 | Argument/Flag | Required | Description |
 |---|---|---|
-| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type (`skill` or `agent`) |
+| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type (`skill`, `agent`, or `collection`) |
 | `<IDS...>` | ✅ | One or more item IDs separated by spaces |
 
 ---
@@ -140,7 +140,7 @@ skill-cli purge --type <TYPE> --yes
 
 | Flag | Required | Description |
 |---|---|---|
-| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type (`skill` or `agent`) |
+| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type (`skill`, `agent`, or `collection`) |
 | `--yes` | ✅ | Required safety confirmation flag |
 
 ---
@@ -150,12 +150,12 @@ skill-cli purge --type <TYPE> --yes
 Exports items to `.md` files formatted with YAML frontmatter, ready to be shared or synced into another instance.
 
 ```
-skill-cli export --type <TYPE> --dir <PATH> [--ids <ID1> <ID2>...] [--query <QUERY>] [--limit <N>]
+skill-cli export --type <TYPE> --dir <PATH> [--ids <ID1> <ID2>...] [--query <QUERY>] [--collection <NAME>] [--limit <N>]
 ```
 
 | Flag | Required | Description |
 |---|---|---|
-| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type to export (`skill` or `agent`) |
+| `--type <TYPE>` / `-t <TYPE>` | ✅ | Item type to export (`skill`, `agent`, or `collection`) |
 | `--dir <PATH>` / `-d <PATH>` | ✅ | Output directory (created automatically if needed) |
 | `--ids <ID...>` | ❌ | Export only specific item IDs (space-separated) |
 | `--query <QUERY>` | ❌ | Export only items matching an FTS search query |
