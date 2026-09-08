@@ -53,7 +53,15 @@ impl From<RusqliteError> for DbError {
 pub type DbResult<T> = std::result::Result<T, DbError>;
 
 pub fn init_pool(db_path: &Path) -> DbResult<DbPool> {
-    let manager = SqliteConnectionManager::file(db_path);
+    let manager = SqliteConnectionManager::file(db_path).with_init(|conn| {
+        // WAL mode allows concurrent readers + one writer and eliminates
+        // "database table is locked" errors when the pool has multiple
+        // connections active at the same time (e.g. during a sync).
+        conn.execute_batch(
+            "PRAGMA journal_mode = WAL;
+             PRAGMA busy_timeout = 5000;",
+        )
+    });
     let pool = Pool::builder().build(manager)?;
 
     let conn = pool.get()?;
