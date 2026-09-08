@@ -53,7 +53,23 @@ impl From<RusqliteError> for DbError {
 pub type DbResult<T> = std::result::Result<T, DbError>;
 
 pub fn init_pool(db_path: &Path) -> DbResult<DbPool> {
-    let manager = SqliteConnectionManager::file(db_path);
+    let manager = SqliteConnectionManager::file(db_path).with_init(|conn| {
+        // WAL mode allows concurrent readers + one writer and eliminates
+        // "database table is locked" errors when the pool has multiple
+        // connections active at the same time (e.g. during a sync).
+        //
+        // `pragma_update` calls `execute_batch` internally, which the
+        // `bundled-full` feature makes strict via `extra_check` — it
+        // returns ExecuteReturnedResults for any PRAGMA that yields rows
+        // (like journal_mode). Use the explicit query-based APIs instead:
+        //   • pragma_update_and_check  → uses query_row, safe for journal_mode
+        //   • prepare + query          → safe regardless of whether rows are returned
+        conn.pragma_update_and_check(None, "journal_mode", "WAL", |_| Ok(()))?;
+        conn.prepare("PRAGMA busy_timeout=5000")?
+            .query([])?
+            .next()?;
+        Ok(())
+    });
     let pool = Pool::builder().build(manager)?;
 
     let conn = pool.get()?;
