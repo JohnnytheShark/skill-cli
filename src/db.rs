@@ -65,7 +65,9 @@ pub fn init_pool(db_path: &Path) -> DbResult<DbPool> {
         //   • pragma_update_and_check  → uses query_row, safe for journal_mode
         //   • prepare + query          → safe regardless of whether rows are returned
         conn.pragma_update_and_check(None, "journal_mode", "WAL", |_| Ok(()))?;
-        conn.prepare("PRAGMA busy_timeout=5000")?.query([])?.next()?;
+        conn.prepare("PRAGMA busy_timeout=5000")?
+            .query([])?
+            .next()?;
         Ok(())
     });
     let pool = Pool::builder().build(manager)?;
