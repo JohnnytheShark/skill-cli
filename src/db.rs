@@ -100,6 +100,8 @@ pub fn init_pool(db_path: &Path) -> DbResult<DbPool> {
             break;
         }
     }
+    drop(rows);
+    drop(stmt);
     if !has_collections {
         conn.execute(
             "ALTER TABLE items ADD COLUMN collections TEXT NOT NULL DEFAULT '[]'",
@@ -164,7 +166,9 @@ pub fn init_pool(db_path: &Path) -> DbResult<DbPool> {
     // MIGRATION: Move old skills table into items table
     let mut stmt =
         conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='skills'")?;
-    if stmt.exists([])? {
+    let has_skills = stmt.exists([])?;
+    drop(stmt);
+    if has_skills {
         conn.execute("INSERT OR IGNORE INTO items (id, item_type, name, description, content, collections, created_at, updated_at) 
                       SELECT id, 'skill', name, description, content, '[]', created_at, updated_at FROM skills", [])?;
         conn.execute("DROP TABLE skills", [])?;
@@ -174,7 +178,9 @@ pub fn init_pool(db_path: &Path) -> DbResult<DbPool> {
     // MIGRATION: Move old agents table into items table
     let mut stmt =
         conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='agents'")?;
-    if stmt.exists([])? {
+    let has_agents = stmt.exists([])?;
+    drop(stmt);
+    if has_agents {
         conn.execute("INSERT OR IGNORE INTO items (id, item_type, name, description, content, collections, created_at, updated_at) 
                       SELECT id, 'agent', name, description, content, '[]', created_at, updated_at FROM agents", [])?;
         conn.execute("DROP TABLE agents", [])?;
