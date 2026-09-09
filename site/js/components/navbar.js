@@ -14,7 +14,7 @@ export function renderNavbar(containerId = 'navbar-container') {
             <span class="logo-text">SK</span>
           </div>
           <span class="brand-name">skill-cli</span>
-          <span class="brand-badge">v0.3.1</span>
+          <span class="brand-badge">v0.4.0</span>
         </a>
 
         <div class="nav-links">

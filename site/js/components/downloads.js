@@ -3,7 +3,7 @@
  */
 
 const REPO = "JohnnytheShark/skill-cli";
-const RELEASE_VERSION = "v0.3.1";
+const RELEASE_VERSION = "v0.4.0";
 
 export function renderDownloads(containerId = 'downloads-container') {
   const container = document.getElementById(containerId);

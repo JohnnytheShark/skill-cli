@@ -54,7 +54,7 @@ cargo build --release
 skill-cli --version
 ```
 
-Expected output: `skill-cli 0.3.1` (or similar).
+Expected output: `skill-cli 0.4.0` (or similar).
 
 ---
 
