@@ -126,11 +126,23 @@ fn main() {
                     item_type,
                 );
             }
-            Commands::Metrics => {
-                println!(
-                    "Metrics tracking is active. Run direct sqlite queries on usage_logs to view time-series analysis."
-                );
-            }
+            Commands::Metrics => match db::get_metrics(&pool) {
+                Ok(metrics) => {
+                    println!("Usage Metrics (Top 50):");
+                    println!(
+                        "{:<30} | {:<10} | {:<12} | Last Used",
+                        "Item ID", "Type", "Usage Count"
+                    );
+                    println!("{:-<30}-+-{:-<10}-+-{:-<12}-+-{:-<20}", "", "", "", "");
+                    for row in metrics {
+                        println!(
+                            "{:<30} | {:<10} | {:<12} | {}",
+                            row.item_id, row.item_type, row.usage_count, row.last_used
+                        );
+                    }
+                }
+                Err(e) => eprintln!("Failed to retrieve metrics: {}", e),
+            },
         }
     } else {
         mcp::start_mcp_server(pool);
