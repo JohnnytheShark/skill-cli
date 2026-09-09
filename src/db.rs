@@ -559,7 +559,7 @@ pub fn get_metrics(pool: &DbPool) -> DbResult<Vec<MetricRow>> {
          ORDER BY usage_count DESC 
          LIMIT 50",
     )?;
-    
+
     let rows = stmt.query_map([], |row| {
         Ok(MetricRow {
             item_id: row.get(0)?,
@@ -568,7 +568,7 @@ pub fn get_metrics(pool: &DbPool) -> DbResult<Vec<MetricRow>> {
             last_used: row.get(3).unwrap_or_else(|_| "Unknown".to_string()),
         })
     })?;
-    
+
     let mut metrics = Vec::new();
     for row in rows {
         metrics.push(row?);
@@ -706,14 +706,14 @@ mod tests {
         log_usage(&pool, "agent-b", ItemType::Agent).unwrap();
 
         let metrics = get_metrics(&pool).unwrap();
-        
+
         assert_eq!(metrics.len(), 2);
-        
+
         // Ensure sorted descending by usage_count
         assert_eq!(metrics[0].item_id, "skill-a");
         assert_eq!(metrics[0].item_type, "skill");
         assert_eq!(metrics[0].usage_count, 3);
-        
+
         assert_eq!(metrics[1].item_id, "agent-b");
         assert_eq!(metrics[1].item_type, "agent");
         assert_eq!(metrics[1].usage_count, 2);
