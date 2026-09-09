@@ -543,6 +543,39 @@ pub fn log_usage(pool: &DbPool, item_id: &str, item_type: ItemType) -> DbResult<
     Ok(())
 }
 
+pub struct MetricRow {
+    pub item_id: String,
+    pub item_type: String,
+    pub usage_count: u32,
+    pub last_used: String,
+}
+
+pub fn get_metrics(pool: &DbPool) -> DbResult<Vec<MetricRow>> {
+    let conn = pool.get()?;
+    let mut stmt = conn.prepare(
+        "SELECT item_id, item_type, COUNT(*) as usage_count, MAX(used_at) as last_used 
+         FROM usage_logs 
+         GROUP BY item_id, item_type 
+         ORDER BY usage_count DESC 
+         LIMIT 50",
+    )?;
+    
+    let rows = stmt.query_map([], |row| {
+        Ok(MetricRow {
+            item_id: row.get(0)?,
+            item_type: row.get(1)?,
+            usage_count: row.get(2)?,
+            last_used: row.get(3).unwrap_or_else(|_| "Unknown".to_string()),
+        })
+    })?;
+    
+    let mut metrics = Vec::new();
+    for row in rows {
+        metrics.push(row?);
+    }
+    Ok(metrics)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -657,5 +690,32 @@ mod tests {
         assert!(remaining.contains(&"s2".to_string()));
         assert!(remaining.contains(&"s4".to_string()));
         assert!(!remaining.contains(&"s1".to_string()));
+    }
+
+    #[test]
+    fn test_get_metrics() {
+        let pool = init_pool(Path::new(":memory:")).unwrap();
+
+        // Log usage for a skill multiple times
+        log_usage(&pool, "skill-a", ItemType::Skill).unwrap();
+        log_usage(&pool, "skill-a", ItemType::Skill).unwrap();
+        log_usage(&pool, "skill-a", ItemType::Skill).unwrap();
+
+        // Log usage for an agent less times
+        log_usage(&pool, "agent-b", ItemType::Agent).unwrap();
+        log_usage(&pool, "agent-b", ItemType::Agent).unwrap();
+
+        let metrics = get_metrics(&pool).unwrap();
+        
+        assert_eq!(metrics.len(), 2);
+        
+        // Ensure sorted descending by usage_count
+        assert_eq!(metrics[0].item_id, "skill-a");
+        assert_eq!(metrics[0].item_type, "skill");
+        assert_eq!(metrics[0].usage_count, 3);
+        
+        assert_eq!(metrics[1].item_id, "agent-b");
+        assert_eq!(metrics[1].item_type, "agent");
+        assert_eq!(metrics[1].usage_count, 2);
     }
 }
