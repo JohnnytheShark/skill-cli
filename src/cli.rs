@@ -103,4 +103,7 @@ pub enum Commands {
 
     /// View usage metrics
     Metrics,
+
+    /// Check for an upgrade on GitHub based on the latest release
+    Upgrade,
 }

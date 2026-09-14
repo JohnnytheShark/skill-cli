@@ -2,6 +2,7 @@ mod cli;
 mod db;
 mod mcp;
 mod models;
+mod upgrade;
 
 use clap::Parser;
 use serde::Deserialize;
@@ -143,6 +144,9 @@ fn main() {
                 }
                 Err(e) => eprintln!("Failed to retrieve metrics: {}", e),
             },
+            Commands::Upgrade => {
+                upgrade::check_for_upgrade();
+            }
         }
     } else {
         mcp::start_mcp_server(pool);
